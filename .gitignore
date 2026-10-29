@@ -2,3 +2,12 @@ node_modules
 .env
 .expo
 .rork
+.runtime/
+backend/.venv/
+backend/data/
+backend/.pytest_cache/
+__pycache__/
+*.py[cod]
+web-portwise/dist/
+web-portwise/test-results/
+web-portwise/playwright-report/

@@ -1,17 +1,1 @@
-{
-  "name": "Portwise · Live 3D terminal operations",
-  "short_name": "Portwise",
-  "description": "A live 3D map of vessels, cranes, yard containers and shipments moving through Pasir Panjang Terminal, Port of Singapore.",
-  "start_url": "/",
-  "scope": "/",
-  "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone"],
-  "orientation": "any",
-  "background_color": "#F3EFE6",
-  "theme_color": "#FFFDF8",
-  "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
-}
+{"name":"港智孪生 GANGZHI TWIN","short_name":"港智孪生","start_url":"/","display":"standalone","background_color":"#0b1923","theme_color":"#0b1923","icons":[{"src":"/gangzhi.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}

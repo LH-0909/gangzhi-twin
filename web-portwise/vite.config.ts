@@ -6,8 +6,10 @@ import { defineConfig } from "vite";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: "127.0.0.1",
+    port: 5180,
+    strictPort: true,
+    proxy: { "/api": { target: "http://127.0.0.1:8011", changeOrigin: true } },
     hmr: {
       overlay: false,
     },
@@ -15,7 +17,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   // Expose both VITE_* (Vite default) and EXPO_PUBLIC_* (Rork's cross-platform

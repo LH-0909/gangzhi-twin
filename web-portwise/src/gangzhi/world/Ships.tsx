@@ -24,6 +24,17 @@ function deckModel(length:number,beam:number,type:string) {
   for(const z of [-1,1]) {m.box([sx,14,z*beam*.45],[9,2.1,3.4],'#e9853c');m.beam([sx-4,17,z*beam*.42],[sx-4,14,z*beam*.5],.16,steel);}
   // Walkways run alongside the deck with repeated stanchions.
   for(const z of [-1,1])m.rail([-length/2+2,10.2,z*beam*.44],[length/2-25,10.2,z*beam*.44],white);
+  // Freeboard plate seams, draft ticks, and deck equipment remain 3D from
+  // close camera angles rather than becoming a flat overlay.
+  for(const side of [-1,1]){
+    const z=side*beam*.495;
+    for(let x=-length*.32;x<length*.27;x+=12)m.box([x,4.2,z],[.12,7.5,.13],'#56636a');
+    for(let x=-length*.33;x<length*.27;x+=36){m.box([x,7.7,z],[3,.15,.14],'#d2d8cf');m.box([x,1.1,z],[2.4,.12,.14],'#c4d0c7');}
+    for(const x of [-length*.37,-length*.11,length*.17]){
+      m.cyl([x,11.4,side*beam*.34],[1.2,2.7,1.2],'#596a72');
+      m.cyl([x,12.9,side*beam*.34],[1.7,.35,1.7],'#d6d9ca');
+    }
+  }
   m.box([length/2-20,10.3,0],[23,.2,beam*.5],'#65846c');
   m.cyl([length/2-15,11,0],[2,1.8,2],steel).cyl([length/2-20,11,5],[1.7,1.4,1.7],steel).cyl([length/2-20,11,-5],[1.7,1.4,1.7],steel);
   m.cyl([length/2-15,17,0],[.4,13,.4],white).beam([length/2-15,22,-3],[length/2-15,22,3],.12,white);

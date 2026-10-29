@@ -110,12 +110,14 @@ def schedule(jobs: list[Job], scenario: str, optimized: bool) -> tuple[dict,list
         energy += job_energy
         timeline.append({"vessel_id":job.id,"berth_id":berth["id"],"arrival":round(job.arrival,2),
                          "start":round(start,2),"finish":round(finish,2),"wait_minutes":round(wait,2),
+                         "start_exact":start,"finish_exact":finish,"duration_minutes":duration,
+                         "wait_minutes_exact":wait,"distance_km_exact":km,"energy_kwh_exact":job_energy,
                          "cargo_teu":job.cargo,"draft":job.draft,"route_target":job.target,
                          "route_path":route_path(job,scenario,optimized),"trip_count":trips,
                          "distance_km":round(km,4),"energy_kwh":round(job_energy,4)})
     makespan = max(available.values())
-    work = sum(row["finish"]-row["start"] for row in timeline)
-    metrics = {"avg_wait_minutes":round(sum(r["wait_minutes"] for r in timeline)/len(jobs),2),
+    work = sum(row["duration_minutes"] for row in timeline)
+    metrics = {"avg_wait_minutes":round(sum(r["wait_minutes_exact"] for r in timeline)/len(jobs),2),
                "makespan_minutes":round(makespan,2),"distance_km":round(total_distance,2),
                "energy_kwh":round(energy,2),"completed_tasks":len(jobs),
                "berth_utilization":round(100*work/(makespan*len(BERTHS)),2)}

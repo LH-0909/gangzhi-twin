@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import asynccontextmanager
 import os
 from pathlib import Path
@@ -16,6 +17,7 @@ from .routing import route_response
 from .simulation import Simulation, Store
 
 Scenario = Literal["normal","fog","wind","road_block","crane_fault"]
+PortScenario = Literal["normal","fog","wind","road_block","crane_fault","channel_closed"]
 
 
 class StrictInput(BaseModel):
@@ -29,11 +31,15 @@ class Control(StrictInput):
 
 
 class ScenarioInput(StrictInput):
-    kind: Scenario
+    kind: PortScenario
 
 
 class SeekInput(StrictInput):
     seconds: float = Field(ge=0,allow_inf_nan=False)
+
+
+class ColdFaultInput(StrictInput):
+    active: bool = Field(strict=True)
 
 
 class CompareInput(StrictInput):
@@ -76,7 +82,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 pass
             application.state.store.save(application.state.engine)
 
-    application = FastAPI(title="港智孪生 · 大连综合港仿真 API",version="0.4.0",lifespan=lifespan,
+    application = FastAPI(title="港智孪生 · 大连综合港仿真 API",version="0.5.0",lifespan=lifespan,
         description="竞赛教学仿真。港区、货量、效率与能耗系数均为演示设定；非实港生产系统。")
     application.add_middleware(CORSMiddleware,
         allow_origins=[f"http://{host}:{port}" for host in ("localhost","127.0.0.1")
@@ -85,17 +91,42 @@ def create_app(db_path: str | None = None) -> FastAPI:
 
     @application.get("/api/health")
     async def health():
-        return {"status":"ok","service":"gangzhi-twin","version":"0.4.0","data_mode":"simulation"}
+        return {"status":"ok","service":"gangzhi-twin","version":"0.5.0","data_mode":"simulation"}
 
     @application.get("/api/state")
     async def state():
         async with application.state.lock:
             return application.state.engine.public_state()
 
+    @application.get("/api/simulation/archives")
+    async def archives():
+        return application.state.store.list_archives()
+
+    @application.get("/api/simulation/archives/{archive_id}")
+    async def archive(archive_id: int):
+        record = application.state.store.archived_record(archive_id)
+        if record is None:
+            raise HTTPException(404,"历史轮次不存在")
+        return record
+
+    @application.post("/api/simulation/archives/{archive_id}/restore")
+    async def restore_archive(archive_id: int):
+        async with application.state.lock:
+            record = application.state.store.archived_record(archive_id)
+            if record is None:
+                raise HTTPException(404,"历史轮次不存在")
+            if record.get("schema_version",1) != 5:
+                raise HTTPException(409,"旧模型记录可下载，并需使用对应旧版模型重现")
+            application.state.store.archive(application.state.engine)
+            application.state.engine = Simulation.from_record(json.dumps(record,ensure_ascii=False))
+            application.state.store.save(application.state.engine)
+            return application.state.engine.public_state()
+
     @application.post("/api/simulation/control")
     async def control(payload: Control):
         async with application.state.lock:
             if payload.action == "reset":
+                application.state.store.archive(application.state.engine)
                 application.state.engine = Simulation(application.state.engine.seed)
             engine = application.state.engine
             if payload.speed is not None:
@@ -147,6 +178,14 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 engine.start_flow()
             except ValueError as error:
                 raise HTTPException(409,str(error)) from error
+            application.state.store.save(engine)
+            return engine.public_state()
+
+    @application.post("/api/cold-chain/fault")
+    async def cold_fault(payload: ColdFaultInput):
+        async with application.state.lock:
+            engine = application.state.engine
+            engine.set_cold_fault(payload.active)
             application.state.store.save(engine)
             return engine.public_state()
 

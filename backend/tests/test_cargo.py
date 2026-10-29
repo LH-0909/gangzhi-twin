@@ -21,9 +21,10 @@ def test_vessel_moves_through_approach_and_retains_outbound_visibility():
     sim.seek(1200)
     sim.advance(8000)
     internal = next(v for v in sim.vessels if v['id'] == vessel['id'])
-    sim.seek(internal['completed_at']+100)
+    assert internal['departed_at'] is not None
+    sim.seek(internal['departed_at']+100)
     leaving = next(v for v in sim.public_state()['vessels'] if v['id'] == vessel['id'])
-    assert leaving['status'] == 'departed'
+    assert leaving['status'] == 'sailing'
     assert leaving['navigation']['phase'] == 'outbound' and leaving['navigation']['visible']
 
 

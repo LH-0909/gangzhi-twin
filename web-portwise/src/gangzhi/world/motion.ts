@@ -5,14 +5,19 @@ const mix=(a:V3,b:V3,t:number):V3=>a.map((v,i)=>lerp(v,b[i],t)) as V3;
 const distance=(a:V3,b:V3)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 const smooth=(t:number)=>{const n=Math.max(0,Math.min(1,t));return n*n*(3-2*n);};
 export function pathPose(points:V3[],meters:number) {
-  let left=Math.max(0,meters);
-  for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],length=distance(a,b);if(left<=length||i===points.length-1)return {p:mix(a,b,length?left/length:1),heading:-Math.atan2(b[2]-a[2],b[0]-a[0])};left-=length;}
+  let left=Math.max(0,meters);const lengths=points.slice(1).map((p,i)=>distance(p,points[i]));
+  for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],length=lengths[i-1];if(left<=length||i===points.length-1){let heading=-Math.atan2(b[2]-a[2],b[0]-a[0]);const blend=Math.min(100,length/2);if(i>1){const span=Math.min(blend,lengths[i-2]/2);if(span&&left<span){const prev=points[i-2],before=-Math.atan2(a[2]-prev[2],a[0]-prev[0]),delta=Math.atan2(Math.sin(heading-before),Math.cos(heading-before)),u=.5+.5*left/span;heading=before+delta*u*u*(3-2*u);}}if(i<points.length-1){const span=Math.min(blend,lengths[i]/2);if(span&&length-left<span){const next=points[i+1],after=-Math.atan2(next[2]-b[2],next[0]-b[0]),delta=Math.atan2(Math.sin(after-heading),Math.cos(after-heading)),u=.5*(1-(length-left)/span);heading+=delta*u*u*(3-2*u);}}return {p:mix(a,b,length?left/length:1),heading};}left-=length;}
   return {p:points[0]??[0,0,0] as V3,heading:0};
 }
 export function navigationPose(nav:NavigationState,time:number) {
   if(!nav.duration)return {p:nav.position,heading:nav.heading};
   const length=nav.path.slice(1).reduce((sum,p,i)=>sum+distance(p,nav.path[i]),0);
-  return pathPose(nav.path,length*(time-nav.started_at)/nav.duration);
+  const pose=pathPose(nav.path,length*(time-nav.started_at)/nav.duration);
+  if(nav.phase==='approaching'||nav.phase==='outbound'){
+    const t=Math.max(0,Math.min(1,(pose.p[2]-(nav.length_m/2+10))/70));
+    pose.heading=Math.atan2(Math.sin(pose.heading),Math.cos(pose.heading))*t*t*(3-2*t);
+  }
+  return pose;
 }
 export function cargoMotion(flow:CargoFlow,time:number,syncedAt:number) {
   const elapsed=flow.elapsed+Math.max(0,time-syncedAt)*flow.rate;

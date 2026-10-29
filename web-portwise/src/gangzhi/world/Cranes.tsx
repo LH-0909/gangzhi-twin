@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { containerGeometry, containerMaterial } from './Containers';
 import { Label, Model, ModelMesh, Pick } from './kit';
 import { QUAY_Y, YARD_BLOCKS, type V3 } from './layout';
-import type { CargoFlow } from '../api';
+import type { CargoFlow, Vessel } from '../api';
 import { cargoMotion } from './motion';
 
 function stsModel() {
@@ -43,15 +43,16 @@ function stsModel() {
 const structure=stsModel();
 const trolleyModel=(()=>{const m=new Model();m.box([0,0,0],[12,1.5,5],'#3c4b52').box([-7,-2,0],[2.8,3.4,3.6],'#e1e4db').box([-7,-1.7,1.84],[2.3,1.6,.1],'#284a5d');return m;})();
 const spreaderModel=(()=>{const m=new Model();m.box([0,0,0],[12.5,.65,2.8],'#dbad54');for(const x of [-5.8,5.8])m.box([x,-.5,0],[.45,.9,2.6],'#494b42');return m;})();
-export function STSCrane({id,x,index,onSelect,selected,clock,active,held,showLabel,flow,syncedAt=0}:{id:string;x:number;index:number;onSelect:(id:string)=>void;selected:boolean;clock:React.RefObject<number>;active:boolean;held:boolean;showLabel:boolean;flow?:CargoFlow;syncedAt?:number}) {
+const bulkGrab=(()=>{const m=new Model();m.box([0,-1.5,0],[5,2.2,3.8],'#a4946b').box([0,-2.9,0],[4.4,.8,3.4],'#736d56');for(const x of [-2,2])m.beam([x,-.3,0],[x*.6,-2.5,0],.25,'#555c57');return m;})();
+export function STSCrane({id,x,index,onSelect,selected,clock,active,held,showLabel,flow,syncedAt=0,bulk=false,work}:{id:string;x:number;index:number;onSelect:(id:string)=>void;selected:boolean;clock:React.RefObject<number>;active:boolean;held:boolean;showLabel:boolean;flow?:CargoFlow;syncedAt?:number;bulk?:boolean;work?:Vessel}) {
   const trolley=useRef<THREE.Group>(null),spreader=useRef<THREE.Group>(null),carried=useRef<THREE.Mesh>(null),cables=useRef<THREE.Group>(null);
-  useFrame(()=>{const t=(clock.current*.18+index*13)%72;const ease=(n:number)=>{const a=Math.max(0,Math.min(1,n));return a*a*(3-2*a);};let z=35,y=39,carrying=false;
+  useFrame(()=>{const workClock=work?(work.work_seconds??0)+Math.max(0,clock.current-syncedAt)*(work.work_rate??0):clock.current;const t=(workClock*.18+index*13)%72;const ease=(n:number)=>{const a=Math.max(0,Math.min(1,n));return a*a*(3-2*a);};let z=35,y=39,carrying=false;
     if(active&&!held){if(t<12)y=THREE.MathUtils.lerp(39,20,ease(t/12));else if(t<26){y=THREE.MathUtils.lerp(20,39,ease((t-12)/14));carrying=true;}else if(t<42){z=THREE.MathUtils.lerp(35,-23,ease((t-26)/16));carrying=true;}else if(t<55){z=-23;y=THREE.MathUtils.lerp(39,6,ease((t-42)/13));carrying=true;}else if(t<64){z=-23;y=THREE.MathUtils.lerp(6,39,ease((t-55)/9));}else z=THREE.MathUtils.lerp(-23,35,ease((t-64)/8));}
-    if(flow){const pose=cargoMotion(flow,clock.current,syncedAt);z=flow.phase==='quay_lift'?pose.trolley:-23;y=flow.phase==='quay_lift'?pose.hoist:39;carrying=false;}
-    if(trolley.current)trolley.current.position.z=z;if(spreader.current)spreader.current.position.set(0,y,z);if(carried.current)carried.current.visible=carrying;
+    if(flow&&(flow.phase==='queued'||flow.phase==='quay_lift')){const pose=cargoMotion(flow,clock.current,syncedAt);z=flow.phase==='quay_lift'?pose.trolley:-23;y=flow.phase==='quay_lift'?pose.hoist:39;carrying=false;}
+    if(trolley.current)trolley.current.position.z=z;if(spreader.current)spreader.current.position.set(0,y,z);if(carried.current)carried.current.visible=carrying&&!bulk;
     if(cables.current){cables.current.position.set(0,(44+y)/2,z);cables.current.scale.y=Math.max(.1,44-y);}
   });
-  return <group position={[x,QUAY_Y,-12]}><Pick id={id} onSelect={onSelect}><ModelMesh model={structure}/><group ref={trolley} position={[0,44,35]}><ModelMesh model={trolleyModel}/></group><group ref={cables}>{[-4.5,4.5].map(xx=>[-.9,.9].map(zz=><mesh key={`${xx}-${zz}`} position={[xx,0,zz]}><boxGeometry args={[.055,1,.055]}/><meshStandardMaterial color="#404b50"/></mesh>))}</group><group ref={spreader}><ModelMesh model={spreaderModel}/><mesh ref={carried} geometry={containerGeometry} material={containerMaterial} position={[0,-1.9,0]} castShadow/></group>{(selected||showLabel||held)&&<Label text={`${id} · ${held?'作业受限':active?'岸桥作业':'空闲待命'}`} p={[0,94,-10]}/>}</Pick></group>;
+  return <group position={[x,QUAY_Y,-12]}><Pick id={id} onSelect={onSelect}><ModelMesh model={structure}/><group ref={trolley} position={[0,44,35]}><ModelMesh model={trolleyModel}/></group><group ref={cables}>{[-4.5,4.5].map(xx=>[-.9,.9].map(zz=><mesh key={`${xx}-${zz}`} position={[xx,0,zz]}><boxGeometry args={[.055,1,.055]}/><meshStandardMaterial color="#404b50"/></mesh>))}</group><group ref={spreader}><ModelMesh model={spreaderModel}/>{bulk&&<ModelMesh model={bulkGrab}/>}<mesh ref={carried} geometry={containerGeometry} material={containerMaterial} position={[0,-1.9,0]} castShadow/></group>{(selected||showLabel||held)&&<Label text={`${id} · ${held?'作业受限':active?(bulk?'散货卸船':'岸桥作业'):'空闲待命'}`} p={[0,94,-10]}/>}</Pick></group>;
 }
 function rtgModel() {const m=new Model(),c='#bda150',d='#555b58';for(const x of [-5,5])for(const z of [-15,15]){m.box([x,1,z],[4,1.5,2],d).beam([x,2,z],[x,19,z],.65,c);for(const xx of [-1,1])m.cyl([x+xx,.6,z],[1.1,.8,1.1],'#2c3232',[Math.PI/2,0,0]);}for(const x of [-5,5])m.beam([x,19,-17],[x,19,17],1,c);m.beam([-5,18,-15],[5,18,-15],.6,c).beam([-5,18,15],[5,18,15],.6,c).box([0,18,0],[6,1.2,4],d).box([6,16,0],[2,2,2],'#d8d8c6');m.beam([-4,3,-15],[-4,15,15],.2,c);return m;}
 const rtg=rtgModel();

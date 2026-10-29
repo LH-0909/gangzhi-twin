@@ -10,3 +10,5 @@
 @media(max-width:620px){.tracked-cargo-card{display:none}.overview-stage:has(.port-insights) .cargo-journey,.overview-stage:has(.port-insights) .cargo-launch{display:none}.cargo-journey li{height:34px}.cargo-journey li:not(:last-child):after{height:19px;top:25px}.cargo-journey .cargo-links button{min-height:32px}}
 
 @media(max-width:620px){.cargo-journey li{height:34px}.cargo-journey li:not(:last-child):after{height:19px;top:25px}.cargo-journey .cargo-links button{min-height:32px}}
+
+.batch-complete{position:absolute;z-index:7;left:50%;top:48%;transform:translate(-50%,-50%);min-width:260px;text-align:center;padding:21px 24px;background:#fbfdf9ee;border:1px solid #d0e0dc;border-radius:9px;box-shadow:0 8px 30px #244e6222}.batch-complete strong{font-size:13px;color:#416d72}.batch-complete p{font-size:10px;color:#8aa39b;margin:10px 0 14px}.batch-complete .primary-button{margin:auto;font-size:10px}

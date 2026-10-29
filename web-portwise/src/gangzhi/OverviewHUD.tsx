@@ -19,7 +19,7 @@ export default function OverviewHUD({ state, onSelect, onOperations, onEnvironme
     return () => media.removeEventListener('change', resize);
   }, []);
   const alerts = state?.alerts.filter(a => !a.acknowledged && a.active !== false) ?? [];
-  const berths = state?.vessels.filter(v => v.berth_id && ['working', 'berthing'].includes(v.status)) ?? [];
+  const berths = state?.vessels.filter(v => v.berth_id && ['working', 'berthing', 'waiting_departure', 'sailing'].includes(v.status)) ?? [];
   const metrics = [
     { title: '累计吞吐', value: number(state?.kpis.throughput_teu), unit: 'TEU', icon: Box },
     { title: '泊位利用率', value: number(state?.kpis.berth_utilization, 1), unit: '%', icon: Anchor },

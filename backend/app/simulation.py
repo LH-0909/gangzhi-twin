@@ -69,6 +69,12 @@ class Simulation:
             {"id":"SP-01","name":"港区岸电站","kind":"shore_power","zone":"B04","status":"idle","utilization":0.0,"energy_kwh":0.0},
         ])
         self._event("港区仿真已初始化", "simulation", "info")
+        # Keep the actual input intervals: replay preserves fractional ticker steps,
+        # scenario changes and acknowledgements, rather than estimating old KPIs.
+        self._history: list[dict] = []
+        self._head = 0.0
+        self._origin = copy.deepcopy(self._core_record())
+        self._head_events = copy.deepcopy(self.events)
         self.advance(1200)
         self.running = False
 
@@ -88,6 +94,12 @@ class Simulation:
     def set_scenario(self, kind: str) -> None:
         if kind not in SCENARIOS:
             raise ValueError("未知仿真场景")
+        self._branch()
+        self._history.append({"at":self.sim_time,"kind":"scenario","value":kind})
+        self._set_scenario_raw(kind)
+        self._head_events = copy.deepcopy(self.events)
+
+    def _set_scenario_raw(self, kind: str) -> None:
         for alert in self.alerts:
             if alert["id"].startswith("SC-"):
                 alert["active"] = False
@@ -105,6 +117,16 @@ class Simulation:
         self._update_equipment(0)
 
     def acknowledge(self, alert_id: str) -> bool:
+        if not any(a["id"] == alert_id for a in self.alerts):
+            return False
+        self._branch()
+        if not any(a["id"] == alert_id and a["acknowledged"] for a in self.alerts):
+            self._history.append({"at":self.sim_time,"kind":"ack","value":alert_id})
+        result = self._acknowledge_raw(alert_id)
+        self._head_events = copy.deepcopy(self.events)
+        return result
+
+    def _acknowledge_raw(self, alert_id: str) -> bool:
         for alert in self.alerts:
             if alert["id"] == alert_id:
                 if not alert["acknowledged"]:
@@ -165,7 +187,60 @@ class Simulation:
             device["energy_kwh"] += amount
             self.energy_kwh += amount
 
+    def _core_record(self) -> dict:
+        return {k:copy.deepcopy(v) for k,v in self.__dict__.items()
+                if k not in ("_history","_head","_origin","_head_events")}
+
+    def _branch(self) -> None:
+        if self.sim_time >= self._head-1e-8:
+            return
+        kept = []
+        for item in self._history:
+            if item["at"] > self.sim_time+1e-8:
+                break
+            item = copy.deepcopy(item)
+            if item["kind"] == "advance":
+                item["seconds"] = min(item["seconds"],self.sim_time-item["at"])
+                if item["seconds"] <= 1e-8:
+                    continue
+            kept.append(item)
+        self._history = kept
+        self._head = self.sim_time
+
+    def seek(self, target: float) -> None:
+        minimum = self._origin["sim_time"]
+        if not minimum <= target <= self._head:
+            raise ValueError("只能回放已记录的仿真时间")
+        running,speed = self.running,self.speed
+        self.__dict__.update(copy.deepcopy(self._origin))
+        for item in self._history:
+            if item["at"] > target+1e-8:
+                break
+            if item["kind"] == "advance":
+                duration = min(item["seconds"],target-item["at"])
+                if duration > 1e-8:
+                    self._advance_raw(duration)
+            elif item["kind"] == "scenario":
+                self._set_scenario_raw(item["value"])
+            elif item["kind"] == "ack":
+                self._acknowledge_raw(item["value"])
+        self.running,self.speed = running,speed
+
     def advance(self, seconds: float) -> None:
+        if not 0 <= seconds <= 86400:
+            raise ValueError("推进时长超出范围")
+        if self.sim_time < self._head-1e-8:
+            replay = min(seconds,self._head-self.sim_time)
+            self.seek(self.sim_time+replay)
+            seconds -= replay
+        if seconds <= 1e-8:
+            return
+        self._history.append({"at":self.sim_time,"kind":"advance","seconds":seconds})
+        self._advance_raw(seconds)
+        self._head = self.sim_time
+        self._head_events = copy.deepcopy(self.events)
+
+    def _advance_raw(self, seconds: float) -> None:
         if seconds < 0 or seconds > 86400:
             raise ValueError("仿真步长必须介于 0 和 86400 秒")
         remaining = seconds
@@ -225,6 +300,9 @@ class Simulation:
         waits = [v["started_at"]-v["arrival"] for v in self.vessels if v["started_at"] is not None]
         active = sum(v["status"] in ("berthing","working") for v in self.vessels)
         return {"sim_time":round(self.sim_time,2),"running":self.running,"speed":self.speed,
+                "timeline":{"minimum":self._origin["sim_time"],"head":self._head,
+                            "replaying":self.sim_time < self._head-0.05,
+                            "events":copy.deepcopy(self._head_events)},
                 "scenario":self.scenario,"seed":self.seed,"vessels":vessels,
                 "equipment":equipment,
                 "tasks":tasks,"alerts":copy.deepcopy(self.alerts),"events":copy.deepcopy(self.events),
@@ -254,6 +332,13 @@ class Simulation:
                     vessel["cargo_tonnes"] = 0
             instance.schema_version = 2
         instance.running = False  # A server restart requires explicit operator resume.
+        if not hasattr(instance,"_history"):
+            # Old snapshots have no input history: retain their state and start
+            # recording here, without inventing an earlier replay.
+            instance._history = []
+            instance._head = instance.sim_time
+            instance._origin = instance._core_record()
+            instance._head_events = copy.deepcopy(instance.events)
         return instance
 
 

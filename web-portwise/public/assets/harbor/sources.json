@@ -1,0 +1,74 @@
+[
+  {
+    "file": "sky.hdr",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloppenheim_05_puresky_2k.hdr",
+    "author": "Poly Haven / Greg Zaal, Jarod Guest",
+    "license": "CC0",
+    "bytes": 3966045,
+    "sha256": "e27abb53a2e14b1d791b43c182a7e86261e16cf4a284becb8904cf335c34a624"
+  },
+  {
+    "file": "asphalt_02_diff.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_diff_1k.jpg",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "bytes": 731707,
+    "sha256": "1aa5ce99f58a625c71d48cfc3e68b65ca85ccb00f39e045c0a928608a0ea25ed"
+  },
+  {
+    "file": "asphalt_02_nor_gl.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_nor_gl_1k.jpg",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "bytes": 1240122,
+    "sha256": "42a1c381b53204e83a982db2864479a30bc127bbdeebb1006f8ee51bff099df3"
+  },
+  {
+    "file": "asphalt_02_rough.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_rough_1k.jpg",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "bytes": 544032,
+    "sha256": "70ba3edc65525eb4dc366cf010ca7ae0bd34e0251ff0225c2dad627a873d0712"
+  },
+  {
+    "file": "concrete_floor_diff.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor/concrete_floor_diff_1k.jpg",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "bytes": 927975,
+    "sha256": "5e06d0fb226f671470f59bf7798954b6965c9ed56dd45084dfd012e15737e444"
+  },
+  {
+    "file": "concrete_floor_nor_gl.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor/concrete_floor_nor_gl_1k.jpg",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "bytes": 883889,
+    "sha256": "5a403c176361193b785198ab363d3dc3755773ca5b023f19e05874e50caea302"
+  },
+  {
+    "file": "concrete_floor_rough.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor/concrete_floor_rough_1k.jpg",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "bytes": 503981,
+    "sha256": "342110e685c07af2c56194662a796b2ab4f2a4d992a9745b8fc55943414faead"
+  },
+  {
+    "file": "waternormals.jpg",
+    "url": "https://threejs.org/examples/textures/waternormals.jpg",
+    "author": "Three.js examples",
+    "license": "MIT",
+    "bytes": 248813,
+    "sha256": "add9912b158a4fe9c12421745babe68c44c8af75631ac4837236cb2a03bc373f"
+  },
+  {
+    "file": "daylight.hdr",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+    "author": "Greg Zaal / Jarod Guest, Poly Haven",
+    "license": "CC0",
+    "bytes": 5451493,
+    "sha256": "5244534e9cf5b606f2ff513aa00ddb161b0a4826ffd88a0d3bd03ac29247d198"
+  }
+]

@@ -1,0 +1,41 @@
+/* Scene-first industrial harbour: the world has the screen, tools remain compact. */
+.workspace-overview{padding:10px 12px 70px}
+.workspace-overview .page-heading{display:none}
+.overview-stage{height:calc(100dvh - 150px);min-height:560px}
+.overview-stage>.scene-card{border-radius:10px;border-color:#afc5cd;background:#8bb7ce}
+.scene-top{top:14px;left:18px;right:14px}
+.scene-top>div:first-child{background:#ffffffec;padding:10px 12px;border:1px solid #d0dfe0;border-radius:7px;gap:8px}
+.scene-top strong{font-size:12px}
+.scene-caption{font-size:9px;color:#76949f}
+.scene-controls{padding:3px}
+.scene-controls .icon-button{width:31px;height:30px}
+.scene-controls .icon-button.active{background:#deeee9;color:#1f7b7c}
+.quality-select{font-size:10px;background:transparent;border:0;border-right:1px solid #d7e2e2;padding:4px 6px;margin-right:2px;border-radius:0;color:#5e7d89}
+.port-metrics{top:73px;left:18px;right:auto;width:640px;max-width:calc(100% - 36px);gap:8px}
+.port-metric{padding:10px 13px;border-radius:7px;background:#ffffffed;border-color:#d3dfe0;box-shadow:0 3px 12px #12364709;backdrop-filter:none}
+.port-metric>span{font-size:9px;color:#6a8793}
+.port-metric strong{font-size:24px;margin-top:5px}
+.port-metric strong small{font-size:9px}
+.insights-toggle{top:13px;right:247px;font-size:10px;padding:10px;background:#fffffff0}
+.port-insights{top:73px;right:14px;bottom:75px;max-height:660px;width:282px}
+.entity-card{top:auto;left:19px;bottom:122px;width:290px;background:#fffffff5;border-radius:9px}
+.container-note{font-size:10px;line-height:1.8;color:#8399a0;margin-top:16px;border-top:1px solid #e2e9e7;padding-top:11px}
+.entity-card .pill{font-size:9px;margin-top:9px}
+.map-coordinate{bottom:81px;background:#f9fcf9e8;padding:8px 10px;border-radius:6px;left:18px;color:#567a89}
+.map-coordinate small{color:#7b959e}
+.map-view-tabs{bottom:22px;background:#fdfefaf5;border-radius:7px}
+.map-view-tabs button{font-size:11px;padding:9px 18px}
+.map-layer{bottom:22px;left:18px;padding:10px 11px;background:#fdfefaf5}
+.scene-hint{bottom:12px;right:17px;background:#f9fcf9d9;padding:5px 8px;border-radius:4px;color:#5d8492}
+.yard-toolbar{position:absolute;right:17px;bottom:80px;z-index:4;background:#fcfdf9f5;border:1px solid #c3d8dc;border-radius:8px;padding:13px 14px;display:flex;align-items:flex-end;gap:15px;box-shadow:0 5px 20px #144b5e13}
+.yard-toolbar label{font-size:9px;color:#89a0a7;display:flex;gap:6px;flex-direction:column}
+.yard-toolbar select{font-size:11px;background:#f3f7f5;border-color:#d3e1dc;padding:6px 7px;color:#527581}
+.yard-toolbar button{display:flex;align-items:center;gap:5px;font-size:10px;color:#33818a;padding:8px 0}
+.yard-toolbar small{font-size:8px;color:#91a8ad;position:absolute;right:12px;top:-22px;background:#f9fcf6e8;padding:4px 7px;border-radius:3px}
+.scene-expanded{inset:10px 12px 74px 92px;min-height:0!important}
+.scene-night .scene-top strong{color:#234d5e}
+.scene-night .scene-caption{color:#708d99}
+@media(max-height:960px) and (min-width:981px){.overview-stage{height:calc(100dvh - 150px)}}
+@media(max-width:1250px){.port-metrics{width:570px}.port-metric strong{font-size:23px}.scene-caption{display:none}.insights-toggle{right:246px}.port-insights{width:260px}}
+@media(max-width:980px){.workspace-overview{padding:9px 10px 70px}.overview-stage{height:calc(100dvh - 149px);min-height:560px}.port-metrics{top:70px;width:560px;max-width:calc(100% - 36px)}.scene-top strong{font-size:10px}.insights-toggle{right:226px}.scene-controls .icon-button{width:28px;height:28px}.quality-select{font-size:9px;width:76px}.scene-controls{gap:0!important}.port-insights{top:162px}.yard-toolbar{bottom:80px;gap:12px}.yard-toolbar label{font-size:9px}.yard-toolbar select{font-size:10px}.yard-toolbar button{font-size:9px}.entity-card{bottom:135px;width:265px}.scene-expanded{left:80px}.port-metric>span{font-size:9px}}
+@media(max-width:620px){.workspace-overview{padding:6px 6px 70px}.overview-stage{height:calc(100dvh - 144px);min-height:600px}.scene-top{top:10px;left:10px;right:10px;align-items:flex-start}.scene-top>div:first-child{padding:8px 9px;gap:5px}.scene-top strong{font-size:9px;letter-spacing:0}.scene-controls .icon-button{width:23px;height:25px}.scene-controls button[title='环港巡航']{display:none}.quality-select{font-size:8px;width:62px;padding:2px;margin:0}.port-metrics{top:59px;left:10px;width:auto;right:10px;max-width:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.port-metric{padding:9px 10px}.port-metric strong{font-size:23px}.port-metric>span{font-size:9px}.insights-toggle{right:10px;top:auto;bottom:126px;padding:9px}.port-insights{top:233px;right:10px;bottom:165px;width:226px}.yard-toolbar{right:10px;left:10px;bottom:123px;padding:10px;gap:9px;justify-content:space-between}.yard-toolbar select{font-size:9px;padding:5px}.yard-toolbar button{font-size:8px}.yard-toolbar small{font-size:7px;right:0;top:-20px}.entity-card{left:10px;right:10px;bottom:210px;width:auto}.map-coordinate{left:10px;bottom:75px;padding:6px}.map-coordinate small{font-size:6px}.map-view-tabs{right:10px;bottom:23px}.map-view-tabs button{font-size:9px;padding:9px 8px}.map-layer{left:10px;bottom:23px;padding:8px}.scene-expanded{inset:7px 7px 73px 65px}.scene-hint{display:none}}

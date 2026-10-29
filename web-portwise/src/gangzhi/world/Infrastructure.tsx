@@ -1,0 +1,25 @@
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Line } from '@react-three/drei';
+import * as THREE from 'three';
+import { containerGeometry } from './Containers';
+import { BOX_COLORS, QUAY_Y, type V3 } from './layout';
+import { Model, ModelMesh, Pick } from './kit';
+
+const normalRoute:V3[]=[[-590,QUAY_Y,-72],[590,QUAY_Y,-72],[590,QUAY_Y,-560],[-590,QUAY_Y,-560],[-590,QUAY_Y,-72]];
+const bypass:V3[]=[[-590,QUAY_Y,-72],[-200,QUAY_Y,-72],[-200,QUAY_Y,-112],[200,QUAY_Y,-112],[200,QUAY_Y,-72],[590,QUAY_Y,-72],[590,QUAY_Y,-560],[-590,QUAY_Y,-560],[-590,QUAY_Y,-72]];
+function onRoute(route:V3[],distance:number) {const lengths=route.slice(1).map((p,i)=>new THREE.Vector3(...p).distanceTo(new THREE.Vector3(...route[i]))),total=lengths.reduce((s,n)=>s+n,0);let d=((distance%total)+total)%total;for(let i=0;i<lengths.length;i++){if(d<=lengths[i]){const a=route[i],b=route[i+1];return {p:new THREE.Vector3(...a).lerp(new THREE.Vector3(...b),d/lengths[i]),r:-Math.atan2(b[2]-a[2],b[0]-a[0])};}d-=lengths[i];}return {p:new THREE.Vector3(...route[0]),r:0};}
+const vehicleModel=(()=>{const m=new Model();m.box([0,1.1,0],[15,1.4,3.3],'#677b79').box([-6,2.1,0],[2.7,1.8,3],'#c5d6d2');for(const x of [-5.4,-3.8,3.8,5.4])for(const z of [-1.7,1.7])m.cyl([x,.8,z],[1.45,.55,1.45],'#232c30',[Math.PI/2,0,0]);m.box([-7.55,1.7,-1.15],[.12,.3,.55],'#e1dfb0').box([-7.55,1.7,1.15],[.12,.3,.55],'#e1dfb0').box([-6,3.4,0],[.8,.5,.8],'#e6ae42');return m;})();
+export function AGV({id,index,onSelect,active,clock,blocked,showRoute}:{id:string;index:number;onSelect:(id:string)=>void;active:boolean;clock:React.RefObject<number>;blocked:boolean;showRoute:boolean}) {
+  const ref=useRef<THREE.Group>(null),last=useRef(clock.current);
+  const boxMaterial=useMemo(()=>new THREE.MeshStandardMaterial({color:BOX_COLORS[index%BOX_COLORS.length],roughness:.8,metalness:.2}),[index]);
+  useFrame(()=>{if(active)last.current=clock.current;if(ref.current){const point=onRoute(blocked?bypass:normalRoute,last.current*5+index*520);ref.current.position.copy(point.p);ref.current.rotation.y=point.r;}});
+  return <group ref={ref}><Pick id={id} onSelect={onSelect}><ModelMesh model={vehicleModel}/><mesh geometry={containerGeometry} material={boxMaterial} position={[.5,3.55,0]} castShadow/></Pick>{showRoute&&<mesh position={[0,.15,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[9,9.2,48]}/><meshBasicMaterial color="#f0af44"/></mesh>}</group>;
+}
+const railway=(()=>{const m=new Model();for(const z of [-583,-588]){m.box([0,QUAY_Y+.12,z],[1300,.2,3.4],'#858e85');for(const zz of [-.8,.8])m.box([0,QUAY_Y+.35,z+zz],[1300,.18,.12],'#a7afaa');for(let x=-640;x<640;x+=1.9)m.box([x,QUAY_Y+.23,z],[.23,.16,2.6],'#67685d');}return m;})();
+const wagonModel=(()=>{const m=new Model();for(let i=0;i<7;i++){const x=i*16;m.box([x,.8,0],[15,.6,3.2],'#645b4d');for(const xx of [-5,5])for(const z of [-1.4,1.4])m.cyl([x+xx,.4,z],[1,.4,1],'#333d3e',[Math.PI/2,0,0]);}m.box([-16,2,0],[13,3.4,3.1],'#31596a').box([-19,4,0],[4,2,3.2],'#d1d6cb');return m;})();
+export function Railway({clock}:{clock:React.RefObject<number>}){const ref=useRef<THREE.Group>(null);useFrame(()=>{if(ref.current)ref.current.position.x=((clock.current*2)%1500)-760;});return <><ModelMesh model={railway} castShadow={false}/><group ref={ref} position={[0,QUAY_Y+.6,-583]}><ModelMesh model={wagonModel}/>{Array.from({length:7},(_,i)=><mesh key={i} geometry={containerGeometry} position={[i*16,2.6,0]} castShadow><meshStandardMaterial color={BOX_COLORS[i%10]} roughness={.8}/></mesh>)}</group></>;}
+const breakwater=(()=>{const m=new Model();m.box([0,1,0],[18,6,600],'#718480').box([0,4.2,0],[15,.5,600],'#a0aaa0');for(let z=-290;z<300;z+=8){m.cyl([11,1,z],[6.8,7,6.8],'#899589',[.5,.3,z]);m.cyl([-11,1,z],[6.8,7,6.8],'#869188',[.5,-.3,z]);}return m;})();
+function Lighthouse(){const m=useMemo(()=>{const b=new Model();for(let i=0;i<7;i++)b.cyl([0,2+i*3.3,0],[6.4-i*.22,3.3,6.4-i*.22],i%2?'#b0634b':'#d5d8cd');b.cyl([0,25,0],[7.2,2.6,7.2],'#768e95').cyl([0,26.5,0],[8,.5,8],'#6b675b');return b;},[]);return <group position={[0,5,280]}><ModelMesh model={m}/><pointLight color="#ffda9d" intensity={30} position={[0,25,0]} distance={80}/></group>;}
+export function Breakwaters(){return <>{[-1,1].map(side=><group key={side} position={[side*760,0,120]} rotation={[0,side*.16,0]}><ModelMesh model={breakwater}/>{side===-1&&<Lighthouse/>}</group>)}</>;}
+export function TrafficOverlay({layer,blocked}:{layer:string;blocked:boolean}){return <>{layer==='routes'&&<Line points={(blocked?bypass:normalRoute).map(p=>[p[0],p[1]+.2,p[2]] as V3)} color="#d7b253" lineWidth={2} dashed dashSize={9} gapSize={5}/>} {blocked&&<group position={[0,QUAY_Y,-72]}><mesh position={[0,1,0]}><boxGeometry args={[100,2.2,1.5]}/><meshStandardMaterial color="#ab5e38"/></mesh>{Array.from({length:12},(_,i)=><mesh key={i} position={[-49+i*9,2,1]}><coneGeometry args={[.6,2,8]}/><meshStandardMaterial color="#e8a449"/></mesh>)}</group>}</>;}

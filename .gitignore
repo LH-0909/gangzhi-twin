@@ -6,6 +6,7 @@ node_modules
 backend/.venv/
 backend/data/
 backend/.pytest_cache/
+backend/pytest-of-pc/
 __pycache__/
 *.py[cod]
 web-portwise/dist/

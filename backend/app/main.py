@@ -32,6 +32,10 @@ class ScenarioInput(StrictInput):
     kind: Scenario
 
 
+class SeekInput(StrictInput):
+    seconds: float = Field(ge=0,allow_inf_nan=False)
+
+
 class CompareInput(StrictInput):
     seed: int = Field(default=42,ge=0,le=2147483647,strict=True)
     vessel_count: int = Field(default=12,ge=3,le=60,strict=True)
@@ -111,6 +115,27 @@ def create_app(db_path: str | None = None) -> FastAPI:
         async with application.state.lock:
             engine = application.state.engine
             engine.set_scenario(payload.kind)
+            application.state.store.save(engine)
+            return engine.public_state()
+
+    @application.post("/api/simulation/seek")
+    async def seek(payload: SeekInput):
+        async with application.state.lock:
+            engine = application.state.engine
+            try:
+                engine.seek(payload.seconds)
+            except ValueError as error:
+                raise HTTPException(422,str(error)) from error
+            engine.running = False
+            application.state.store.save(engine)
+            return engine.public_state()
+
+    @application.post("/api/simulation/live")
+    async def live():
+        async with application.state.lock:
+            engine = application.state.engine
+            engine.seek(engine._head)
+            engine.running = True
             application.state.store.save(engine)
             return engine.public_state()
 

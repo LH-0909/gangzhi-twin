@@ -10,11 +10,11 @@ export default function OverviewHUD({ state, onSelect, onOperations, onEnvironme
   onEnvironment: () => void;
   onAlerts: () => void;
 }) {
-  const [open, setOpen] = useState(() => window.matchMedia('(min-width:981px)').matches);
+  const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'berths' | 'trend' | 'events'>('berths');
   useEffect(() => {
     const media = window.matchMedia('(min-width:981px)');
-    const resize = () => setOpen(media.matches);
+    const resize = () => setOpen(false);
     media.addEventListener('change', resize);
     return () => media.removeEventListener('change', resize);
   }, []);

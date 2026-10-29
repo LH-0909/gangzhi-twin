@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { BoxInstances, shipContainers } from './Containers';
 import { Label, Model, ModelMesh, Pick, Sign } from './kit';
 import type { V3 } from './layout';
+import type { NavigationState } from '../api';
+import { navigationPose } from './motion';
 
 function hullGeometry(length:number,beam:number) {
   const sections=[[-.5,.8],[-.47,.98],[-.35,1],[.2,1],[.33,.95],[.42,.69],[.48,.28],[.5,.015]];
@@ -48,12 +50,12 @@ function deckModel(length:number,beam:number,type:string) {
   }
   return m;
 }
-export function DetailedShip({id,name,type,position,progress,selected,onSelect,clock,atBerth}:{id:string;name:string;type:string;position:V3;progress:number;selected:boolean;onSelect:(id:string)=>void;clock:React.RefObject<number>;atBerth:boolean}) {
+export function DetailedShip({id,name,type,position,progress,selected,onSelect,clock,atBerth,navigation}:{id:string;name:string;type:string;position:V3;progress:number;selected:boolean;onSelect:(id:string)=>void;clock:React.RefObject<number>;atBerth:boolean;navigation?:NavigationState}) {
   const root=useRef<THREE.Group>(null),length=type==='bulk'?220:type==='tanker'?235:278,beam=type==='bulk'?34:type==='tanker'?38:42;
   const hull=useMemo(()=>hullGeometry(length,beam),[length,beam]),model=useMemo(()=>deckModel(length,beam,type),[length,beam,type]);
   const allBoxes=useMemo(()=>shipContainers(length,beam,Number(id.slice(-1))),[length,beam,id]);
   const boxes=useMemo(()=>allBoxes.slice(0,Math.max(0,Math.floor(allBoxes.length*(1-progress*.0055)))),[allBoxes,Math.floor(progress)]);
-  useFrame((_,dt)=>{const g=root.current;if(!g)return;g.position.x=THREE.MathUtils.damp(g.position.x,position[0],1,dt);g.position.z=THREE.MathUtils.damp(g.position.z,position[2],1,dt);g.position.y=Math.sin(clock.current*.2+position[0])*.08;g.rotation.x=Math.sin(clock.current*.11)*.001;});
+  useFrame((_,dt)=>{const g=root.current;if(!g)return;if(navigation){const pose=navigationPose(navigation,clock.current);g.position.set(...pose.p);g.rotation.y+=Math.atan2(Math.sin(pose.heading-g.rotation.y),Math.cos(pose.heading-g.rotation.y))*Math.min(1,dt*4);}else{g.position.x=position[0];g.position.z=position[2];}g.position.y=Math.sin(clock.current*.2+position[0])*.08;g.rotation.x=Math.sin(clock.current*.11)*.001;});
   return <group ref={root} position={position}><Pick id={id} onSelect={onSelect}><mesh geometry={hull} material={hullMaterials} castShadow receiveShadow/><ModelMesh model={model}/>{type!=='bulk'&&type!=='tanker'&&<BoxInstances boxes={boxes}/>}<mesh position={[length/2-3,-.6,0]} scale={[8,2.3,2.1]}><sphereGeometry args={[1,18,12]}/><meshStandardMaterial color="#9d4034" roughness={.56}/></mesh><Sign text={`${name} · GANGZHI`} p={[length/2-55,5.8,beam*.485]} w={28} h={2.3} color="#e5e6db" background="#233644" size={57}/><Sign text={id} p={[-length/2+28,5.8,beam*.485]} w={12} h={1.9} color="#cdd6d2" background="#233644" size={54}/>{selected&&<Label text={`${name} · ${progress.toFixed(0)}%`} p={[0,49,0]}/>}</Pick>{atBerth&&<Mooring length={length} beam={beam}/>}</group>;
 }
 function Mooring({length,beam}:{length:number;beam:number}) {const m=useMemo(()=>{const b=new Model();for(const x of [-length*.4,length*.4]){b.beam([x,9,-beam*.42],[x-18,4.8,-28],.09,'#b7b099');b.beam([x+6,9,-beam*.42],[x+20,4.8,-28],.08,'#b7b099');}return b;},[length,beam]);return <ModelMesh model={m} castShadow={false}/>;}

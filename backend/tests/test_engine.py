@@ -140,7 +140,7 @@ def test_legacy_snapshot_cargo_migration():
             vessel["cargo_teu"] = vessel["cargo_tonnes"]//10
         vessel.pop("cargo_tonnes")
     restored = Simulation.from_record(json.dumps(record))
-    assert restored.schema_version == 2
+    assert restored.schema_version == 3
     state = restored.public_state()
     assert all(v["cargo_teu"] == 0 for v in state["vessels"] if v["type"] in ("bulk","tanker"))
     assert state["kpis"]["bulk_tonnes"] > 0

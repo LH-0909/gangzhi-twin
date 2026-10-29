@@ -22,3 +22,12 @@
 MIT 完整正文保存在根目录 [LICENSE](LICENSE)，应随包含 Portwise 实质代码的分发一同提供。直接改写其文件时仍保留相关版权归属。各 npm 与 Python 依赖适用各自许可证，以锁文件及安装包的许可文件为准。
 
 本项目没有获得大连港、辽宁港口集团或学校的官方数据授权或背书；名称和地区场景仅用于说明竞赛原型适用背景。真实港口、学校标识、商业模型与地图资产若后续加入，应独立记录来源与使用许可。
+
+
+## V0.3–V0.4 三维资源（2026-10-29）
+
+- Portwise 的梁架组合、分阶段吊具运动与悬浮工具布局作为实现参考，相关文件保留 MIT 来源说明。新的场景组合、船舶几何、箱壁波纹、中文界面、任务联动和后端由本项目编写。
+- Poly Haven 的 [Kloofendal 48d Partly Cloudy PureSky](https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky)、[Kloppenheim 05 PureSky](https://polyhaven.com/a/kloppenheim_05_puresky)、[Asphalt 02](https://polyhaven.com/a/asphalt_02) 与 [Concrete Floor](https://polyhaven.com/a/concrete_floor) 用于天空、反射和地面。适用 [CC0](https://polyhaven.com/license)，天空作者见资产清单。Kloppenheim 文件保留在资源目录，当前默认天空使用 Kloofendal。
+- 海面使用 Three.js 的 Water 插件与 [waternormals.jpg](https://threejs.org/examples/textures/waternormals.jpg)。Three.js 采用 MIT，完整许可证副本保存在 `web-portwise/public/assets/harbor/THREE-LICENSE.txt`。
+- 下载地址、作者、字节数和 SHA-256 保存在 `web-portwise/public/assets/harbor/sources.json`；`scripts/verify-scene.mjs` 验证本地文件与清单一致。
+- 本轮发布的三维船舶采用程序化几何，没有将未完成核验的外部 GLB 船模加入发布包。用户提供的港口参考图片用于设计比较，没有作为三维港区背景或可交互物体替身。

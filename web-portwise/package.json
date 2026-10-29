@@ -1,13 +1,14 @@
 {
   "name": "gangzhi-twin",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.app.json --noEmit && vite build",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
-    "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort"
+    "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort",
+    "test:scene": "node ../scripts/verify-scene.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

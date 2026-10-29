@@ -76,7 +76,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 pass
             application.state.store.save(application.state.engine)
 
-    application = FastAPI(title="港智孪生 · 大连综合港仿真 API",version="0.1.0",lifespan=lifespan,
+    application = FastAPI(title="港智孪生 · 大连综合港仿真 API",version="0.4.0",lifespan=lifespan,
         description="竞赛教学仿真。港区、货量、效率与能耗系数均为演示设定；非实港生产系统。")
     application.add_middleware(CORSMiddleware,
         allow_origins=[f"http://{host}:{port}" for host in ("localhost","127.0.0.1")
@@ -85,7 +85,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
 
     @application.get("/api/health")
     async def health():
-        return {"status":"ok","service":"gangzhi-twin","version":"0.1.0","data_mode":"simulation"}
+        return {"status":"ok","service":"gangzhi-twin","version":"0.4.0","data_mode":"simulation"}
 
     @application.get("/api/state")
     async def state():
@@ -136,6 +136,17 @@ def create_app(db_path: str | None = None) -> FastAPI:
             engine = application.state.engine
             engine.seek(engine._head)
             engine.running = True
+            application.state.store.save(engine)
+            return engine.public_state()
+
+    @application.post("/api/cargo/start")
+    async def start_cargo():
+        async with application.state.lock:
+            engine = application.state.engine
+            try:
+                engine.start_flow()
+            except ValueError as error:
+                raise HTTPException(409,str(error)) from error
             application.state.store.save(engine)
             return engine.public_state()
 

@@ -7,6 +7,9 @@ from pathlib import Path
 import random
 import sqlite3
 
+from . import cargo_flow
+from .navigation import navigation
+
 
 SCENARIOS = {"normal", "fog", "wind", "road_block", "crane_fault"}
 BERTHS = {
@@ -25,7 +28,7 @@ def clock(seconds: float) -> str:
 class Simulation:
     def __init__(self, seed: int = 42):
         self.seed = seed
-        self.schema_version = 2
+        self.schema_version = 3
         self.sim_time = 0.0
         self.running = False
         self.speed = 30.0
@@ -36,6 +39,7 @@ class Simulation:
         self.alerts: list[dict] = []
         self.events: list[dict] = []
         self.vessels = []
+        self.flows: list[dict] = []
         self._counter = 0
         self._sample_at = -300.0
         rng = random.Random(seed)
@@ -69,6 +73,7 @@ class Simulation:
             {"id":"SP-01","name":"港区岸电站","kind":"shore_power","zone":"B04","status":"idle","utilization":0.0,"energy_kwh":0.0},
         ])
         self._event("港区仿真已初始化", "simulation", "info")
+        self._allocate()
         # Keep the actual input intervals: replay preserves fractional ticker steps,
         # scenario changes and acknowledgements, rather than estimating old KPIs.
         self._history: list[dict] = []
@@ -78,10 +83,11 @@ class Simulation:
         self.advance(1200)
         self.running = False
 
-    def _event(self, title: str, entity_id: str, level: str = "info") -> None:
+    def _event(self, title: str, entity_id: str, level: str = "info", at: float | None = None) -> None:
+        timestamp = self.sim_time if at is None else at
         self._counter += 1
         self.events.append({"id":f"EV-{self._counter:05}","title":title,"entity_id":entity_id,
-                            "level":level,"time":clock(self.sim_time),"sim_time":round(self.sim_time,2)})
+                            "level":level,"time":clock(timestamp),"sim_time":timestamp})
         self.events = self.events[-200:]
 
     def _alert(self, key: str, level: str, title: str, detail: str, entity_id: str) -> None:
@@ -100,10 +106,16 @@ class Simulation:
         self._head_events = copy.deepcopy(self.events)
 
     def _set_scenario_raw(self, kind: str) -> None:
+        road_changed = (self.scenario == "road_block") != (kind == "road_block")
         for alert in self.alerts:
             if alert["id"].startswith("SC-"):
                 alert["active"] = False
         self.scenario = kind
+        if road_changed:
+            for flow in self.flows:
+                cargo_flow.replan(flow,kind == "road_block")
+        for flow in self.flows:
+            cargo_flow.refresh(flow,self.vessels,kind)
         messages = {
             "fog": ("warning","海雾影响进出港","演示设定：能见度下降，靠泊时间延长，岸桥效率降至 72%。","B01"),
             "wind": ("critical","大风作业限制","演示设定：岸桥进入天气暂停；等待船舶重新计算作业窗口。","QC-01"),
@@ -145,7 +157,8 @@ class Simulation:
                 self._event(f"{vessel['name']} 到达锚地",vessel["id"])
             for berth_id,berth in BERTHS.items():
                 if berth_id not in occupied and vessel["type"] in berth["types"] and vessel["draft"] <= berth["depth"]:
-                    vessel.update(status="berthing",berth_id=berth_id,started_at=self.sim_time)
+                    vessel.update(status="berthing",berth_id=berth_id,started_at=self.sim_time,
+                                  berthing_duration=900.0 if self.scenario == "fog" else 600.0)
                     occupied.add(berth_id)
                     for alert in self.alerts:
                         if alert["id"] == f"WAIT-{vessel['id']}":
@@ -173,6 +186,8 @@ class Simulation:
                 power = 45 if status == "working" else 3
             elif kind == "agv":
                 status = "working" if working and self.scenario != "wind" else "idle"
+                if device["id"] == "AGV-01" and self.flows:
+                    status = "working" if self.flows[0]["phase"] in ("drive_yard","drive_gate") else "idle"
                 utilization = (79 if self.scenario == "road_block" else 64) if status == "working" else 0
                 power = (8 if self.scenario == "road_block" else 6) if status == "working" else 1
             elif kind == "shore_power":
@@ -190,6 +205,26 @@ class Simulation:
     def _core_record(self) -> dict:
         return {k:copy.deepcopy(v) for k,v in self.__dict__.items()
                 if k not in ("_history","_head","_origin","_head_events")}
+
+    def start_flow(self) -> dict:
+        if self.flows:
+            return self.flows[0]
+        eligible = [v for v in self.vessels if v["berth_id"] == "B01" and v["status"] in ("berthing","working")]
+        if not eligible:
+            raise ValueError("B01 暂无可用箱船，请回放到靠泊作业时段或重置本轮仿真")
+        self._branch()
+        vessel_id = eligible[0]["id"]
+        self._history.append({"at":self.sim_time,"kind":"flow_start","value":vessel_id})
+        flow = self._start_flow_raw(vessel_id)
+        self._head_events = copy.deepcopy(self.events)
+        return flow
+
+    def _start_flow_raw(self, vessel_id: str) -> dict:
+        flow = cargo_flow.new_flow(vessel_id,self.sim_time)
+        cargo_flow.refresh(flow,self.vessels,self.scenario)
+        self.flows.append(flow)
+        self._event(f"{flow['box_id']} · 创建箱运示范任务",flow["box_id"])
+        return flow
 
     def _branch(self) -> None:
         if self.sim_time >= self._head-1e-8:
@@ -224,6 +259,8 @@ class Simulation:
                 self._set_scenario_raw(item["value"])
             elif item["kind"] == "ack":
                 self._acknowledge_raw(item["value"])
+            elif item["kind"] == "flow_start":
+                self._start_flow_raw(item["value"])
         self.running,self.speed = running,speed
 
     def advance(self, seconds: float) -> None:
@@ -249,7 +286,7 @@ class Simulation:
             self._allocate()
             for vessel in self.vessels:
                 if vessel["status"] == "berthing":
-                    delay = 240 if self.scenario == "fog" else 120
+                    delay = vessel.get("berthing_duration",600.0)
                     if self.sim_time-vessel["started_at"] >= delay:
                         vessel["status"] = "working"
                         vessel["work_started_at"] = self.sim_time
@@ -267,7 +304,9 @@ class Simulation:
                         self.throughput += vessel["cargo_teu"]*delta/vessel["duration"]
                     if vessel["progress"] >= 100-1e-8:
                         vessel.update(status="departed",completed_at=self.sim_time+dt)
-                        self._event(f"{vessel['name']} 完成作业并离泊",vessel["id"])
+                        self._event(f"{vessel['name']} 完成作业并离泊",vessel["id"],at=self.sim_time+dt)
+            for flow in self.flows:
+                cargo_flow.update(flow,self.vessels,self.scenario,self.sim_time,dt,self._event)
             self._update_equipment(dt)
             self.sim_time += dt
             remaining -= dt
@@ -289,7 +328,8 @@ class Simulation:
                     "cargo_amount":v["cargo_tonnes"] if v["type"] in ("bulk","tanker") else v["cargo_teu"],
                     "cargo_unit":"t" if v["type"] in ("bulk","tanker") else "TEU",
                     "arrived":v["arrival"] <= self.sim_time,"eta_seconds":v["arrival"],
-                    "eta":clock(v["arrival"]),"progress":round(v["progress"],1)} for v in self.vessels]
+                    "eta":clock(v["arrival"]),"progress":round(v["progress"],1),
+                    "navigation":navigation(v,self.sim_time)} for v in self.vessels]
         tasks = []
         for vessel in self.vessels:
             status = "completed" if vessel["status"] == "departed" else "running" if vessel["status"] == "working" else "pending"
@@ -304,6 +344,10 @@ class Simulation:
                             "replaying":self.sim_time < self._head-0.05,
                             "events":copy.deepcopy(self._head_events)},
                 "scenario":self.scenario,"seed":self.seed,"vessels":vessels,
+                "flows":[cargo_flow.public(flow,self.scenario) for flow in self.flows],
+                "data_basis":{"mode":"simulation","model_version":3,"coordinates":"illustrative_metres",
+                              "tracked_cargo":"single_40hc_demonstration","bulk_kpis":"aggregate_estimates",
+                              "carbon_factor_kg_per_kwh":0.57},
                 "equipment":equipment,
                 "tasks":tasks,"alerts":copy.deepcopy(self.alerts),"events":copy.deepcopy(self.events),
                 "series":copy.deepcopy(self.series),
@@ -331,6 +375,16 @@ class Simulation:
                 else:
                     vessel["cargo_tonnes"] = 0
             instance.schema_version = 2
+        if instance.schema_version < 3:
+            # Preserve existing business state. Earlier histories used different
+            # approach durations, so begin a new recording at this snapshot.
+            instance.flows = []
+            for vessel in instance.vessels:
+                if vessel["started_at"] is not None:
+                    vessel["berthing_duration"] = 120.0
+            instance.schema_version = 3
+            for key in ("_history","_head","_origin","_head_events"):
+                instance.__dict__.pop(key,None)
         instance.running = False  # A server restart requires explicit operator resume.
         if not hasattr(instance,"_history"):
             # Old snapshots have no input history: retain their state and start

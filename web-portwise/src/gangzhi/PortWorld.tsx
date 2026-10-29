@@ -4,7 +4,9 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { HarbourAtmosphere, Ocean, PortTerrain } from './world/Environment';
-import { STSCrane, YardGantries } from './world/Cranes';
+import { STSCrane, YardGantries, FlowYardCrane } from './world/Cranes';
+import { TrackedCargo, PortGate } from './world/Cargo';
+import type { CargoFlow, Vessel } from './api';
 import { DetailedShip } from './world/Ships';
 import { YardContainers } from './world/Containers';
 import { AGV, Breakwaters, Railway, TrafficOverlay } from './world/Infrastructure';
@@ -17,7 +19,7 @@ export interface PortWorldProps {
   layer: 'all' | 'equipment' | 'routes' | 'energy';
   autoLight?:boolean; view: 'immersive' | 'overview' | 'berth' | 'yard' | 'sea'; night: boolean;
   inspectColumn?: boolean; maxTier?: number; yardBlock?: string; cruise?: boolean; quality?: 'standard'|'high';
-  vessels?: Array<{ id: string; status: string; berth_id: string | null; progress: number; type: string; name: string; arrived?: boolean }>;
+  vessels?: Vessel[]; cargoFlow?: CargoFlow;
   equipment?: Array<{ id: string; status: string; utilization: number }>;
 }
 const cranePositions=[-500,-397,-205,-101,100,205];
@@ -27,7 +29,7 @@ function Camera({props}:{props:PortWorldProps}) {
   const eye=useRef(new THREE.Vector3(650,190,650)),target=useRef(new THREE.Vector3(-170,20,-170));
   useEffect(()=>{
     const views:Record<string,{p:V3;t:V3}>={immersive:{p:[135,120,315],t:[-235,27,-70]},overview:{p:[650,190,650],t:[-170,22,-170]},berth:{p:[100,92,250],t:[-260,19,-30]},yard:{p:[120,265,-40],t:[0,5,-300]},sea:{p:[-750,95,620],t:[-90,25,-120]}};
-    let item=views[props.view];follow.current=!!props.selected?.startsWith('AGV-');
+    let item=views[props.view];follow.current=!!props.selected?.startsWith('AGV-')||!!props.selected?.startsWith('V')||props.selected===props.cargoFlow?.box_id;
     const box=findYardBox(props.selected);
     if(box)item={p:[box.p[0]+23,box.p[1]+15,box.p[2]+26],t:[box.p[0],box.p[1]+.4,box.p[2]]};
     else if(props.selected?.startsWith('QC-')){const x=cranePositions[Number(props.selected.slice(-2))-1]??0;item={p:[x+140,90,170],t:[x,36,0]};}
@@ -38,8 +40,8 @@ function Camera({props}:{props:PortWorldProps}) {
     else if(props.view==='yard'){const block=YARD_BLOCKS.find(b=>b.id===props.yardBlock);if(block)item={p:[block.x+130,140,block.z+135],t:[block.x,7,block.z]};}
     const aspect=size.width/Math.max(size.height,1),extra=aspect<1.3?1.3/aspect:1;
     target.current.set(...item.t);eye.current.set(...item.p).sub(target.current).multiplyScalar(extra).add(target.current);transition.current=true;
-  },[props.view,props.resetKey,props.selected,props.yardBlock,size.width,size.height]);
-  useFrame((_,dt)=>{if(follow.current&&props.selected){const entity=entityObjects.get(props.selected);if(entity){entity.getWorldPosition(target.current);target.current.y+=2;eye.current.copy(target.current).add(new THREE.Vector3(38,29,46));transition.current=true;}}if(!transition.current||!controls.current)return;const alpha=1-Math.exp(-dt*4);camera.position.lerp(eye.current,alpha);controls.current.target.lerp(target.current,alpha);controls.current.update();if(camera.position.distanceTo(eye.current)<.2)transition.current=false;});
+  },[props.view,props.resetKey,props.selected,props.yardBlock,props.cargoFlow?.id,size.width,size.height]);
+  useFrame((_,dt)=>{if(follow.current&&props.selected){const entity=entityObjects.get(props.selected);if(entity){entity.getWorldPosition(target.current);target.current.y+=2;eye.current.copy(target.current).add(props.selected.startsWith('V')?new THREE.Vector3(210,100,210):new THREE.Vector3(38,29,46));transition.current=true;}}if(!transition.current||!controls.current)return;const alpha=1-Math.exp(-dt*4);camera.position.lerp(eye.current,alpha);controls.current.target.lerp(target.current,alpha);controls.current.update();if(camera.position.distanceTo(eye.current)<.2)transition.current=false;});
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={.075} minDistance={10} maxDistance={4500} minPolarAngle={.06} maxPolarAngle={Math.PI*.485} autoRotate={props.cruise} autoRotateSpeed={.3} onStart={()=>{transition.current=false;follow.current=false;}}/>;
 }
 function World(props:PortWorldProps) {
@@ -47,10 +49,11 @@ function World(props:PortWorldProps) {
   useEffect(()=>{const old=sync.current;sync.current={time:props.simTime,running:props.running,speed:props.speed,received:performance.now()};if(!props.running||props.simTime<old.time||Math.abs(props.simTime-clock.current)>Math.max(120,props.speed*4))clock.current=props.simTime;},[props.simTime,props.running,props.speed]);
   useFrame((_,dt)=>{const s=sync.current;if(s.running){const extrapolation=Math.min(2.25,(performance.now()-s.received)/1000);clock.current=THREE.MathUtils.damp(clock.current,s.time+extrapolation*s.speed,8,dt);}});
   const devices=props.equipment??[],vessels=props.vessels??[];
-  return <><HarbourAtmosphere clock={clock} autoLight={props.autoLight??true} night={props.night} scenario={props.scenario}/><Ocean clock={clock} night={props.night} storm={props.scenario==='wind'} quality={props.quality??'high'}/><PortTerrain onSelect={props.onSelect}/><YardContainers onSelect={props.onSelect} selected={props.selected} maxTier={props.maxTier??5} inspectColumn={props.inspectColumn}/><YardGantries/>
-  {vessels.filter(v=>v.status!=='departed'&&v.arrived!==false).map(v=>{const i=Number(v.id.slice(-1)),atBerth=!!v.berth_id&&['working','berthing'].includes(v.status),position:V3=atBerth?[BERTH_X[v.berth_id!]??0,0,28]:[-620+(i%3)*500,0,480+Math.floor(i/3)*220];return <DetailedShip key={v.id} id={v.id} name={v.name} type={v.type} position={position} progress={v.progress} selected={v.id===props.selected} onSelect={props.onSelect} clock={clock} atBerth={atBerth}/>;})}
-  {cranePositions.map((x,i)=>{const id=`QC-${String(i+1).padStart(2,'0')}`,device=devices.find(d=>d.id===id);return <STSCrane key={id} id={id} x={x} index={i} onSelect={props.onSelect} selected={props.selected===id} clock={clock} active={device?.status==='working'} held={['fault','weather_hold'].includes(device?.status??'')} showLabel={props.layer==='equipment'}/>;})}
-  {devices.filter(d=>d.id.startsWith('AGV-')).map((d,i)=><AGV key={d.id} id={d.id} index={i} active={d.status==='working'} onSelect={props.onSelect} clock={clock} blocked={props.scenario==='road_block'} showRoute={d.id===props.selected}/>)}<Railway clock={clock}/><Breakwaters/><TrafficOverlay layer={props.layer} blocked={props.scenario==='road_block'}/>{props.layer==='energy'&&<EnergyLines/>}<Camera props={props}/></>;
+  return <><HarbourAtmosphere clock={clock} autoLight={props.autoLight??true} night={props.night} scenario={props.scenario}/><Ocean autoLight={props.autoLight??true} clock={clock} night={props.night} storm={props.scenario==='wind'} quality={props.quality??'high'}/><PortTerrain onSelect={props.onSelect}/><YardContainers simple={props.quality==='standard'} onSelect={props.onSelect} selected={props.selected} maxTier={props.maxTier??5} inspectColumn={props.inspectColumn}/><YardGantries/>
+  {vessels.filter(v=>v.navigation?v.navigation.visible:v.status!=='departed'&&v.arrived!==false).map(v=>{const position=v.navigation?.position??[BERTH_X[v.berth_id??'']??0,0,28] as V3;return <DetailedShip key={v.id} id={v.id} name={v.name} type={v.type} position={position} navigation={v.navigation} progress={v.progress} selected={v.id===props.selected} onSelect={props.onSelect} clock={clock} atBerth={v.navigation?.phase==='working'}/>;})}
+  {props.layer==='routes'&&vessels.filter(v=>v.navigation?.visible&&['inbound','approaching','outbound'].includes(v.navigation.phase)).map(v=><Line key={v.id} points={v.navigation!.path.map(p=>[p[0],.3,p[2]] as V3)} color="#67c6d6" lineWidth={2} dashed dashSize={14} gapSize={8}/>)}
+  {cranePositions.map((x,i)=>{const id=`QC-${String(i+1).padStart(2,'0')}`,device=devices.find(d=>d.id===id);return <STSCrane key={id} id={id} x={x} index={i} onSelect={props.onSelect} selected={props.selected===id} clock={clock} active={device?.status==='working'} held={['fault','weather_hold'].includes(device?.status??'')} showLabel={props.layer==='equipment'} flow={props.cargoFlow?.crane_id===id?props.cargoFlow:undefined} syncedAt={props.simTime}/>;})}
+  {devices.filter(d=>d.id.startsWith('AGV-')).map((d,i)=><AGV key={d.id} id={d.id} index={i} active={d.status==='working'} onSelect={props.onSelect} clock={clock} blocked={props.scenario==='road_block'} showRoute={d.id===props.selected} flow={props.cargoFlow?.vehicle_id===d.id?props.cargoFlow:undefined} syncedAt={props.simTime}/>)}<PortGate/>{props.cargoFlow&&<><TrackedCargo hidden={props.view==='yard'&&props.cargoFlow.phase==='stored'&&(props.maxTier??5)<props.cargoFlow.target.tier&&props.selected!==props.cargoFlow.box_id} flow={props.cargoFlow} clock={clock} syncedAt={props.simTime} onSelect={props.onSelect} selected={props.selected===props.cargoFlow.box_id} showRoute={props.layer==='routes'||props.selected===props.cargoFlow.box_id}/><FlowYardCrane flow={props.cargoFlow} clock={clock} syncedAt={props.simTime}/></>}<Railway clock={clock}/><Breakwaters/><TrafficOverlay layer={props.layer} blocked={props.scenario==='road_block'}/>{props.layer==='energy'&&<EnergyLines/>}<Camera props={props}/></>;
 }
 function EnergyLines(){return <>{Object.values(BERTH_X).map(x=><Line key={x} points={[[540,5,-620],[540,5,-575],[x,5,-575],[x,5,-12],[x,8,10]]} color="#8be1b3" lineWidth={2}/>)}<Line points={[[540,6,-620],[550,6,-480]]} color="#8be1b3" lineWidth={3}/></>;}
 export default function PortWorld(props:PortWorldProps) {

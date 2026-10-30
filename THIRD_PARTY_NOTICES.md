@@ -36,3 +36,9 @@ MIT 完整正文保存在根目录 [LICENSE](LICENSE)，应随包含 Portwise �
 
 - 背景山体使用 Poly Haven 的 [Aerial Grass Rock](https://polyhaven.com/a/aerial_grass_rock) 1K 颜色、法线和粗糙度贴图，许可为 [CC0](https://polyhaven.com/license)。三张文件的下载地址、作者、字节数和 SHA-256 记录在 `web-portwise/public/assets/harbor/sources.json`。
 - 远山轮廓、城市立面纹理、散货堆场、岸桥结构、船体细部及五段巡航镜头由本项目程序化构建；未使用用户提供照片作为背景，也未将示意城市称为真实大连测绘模型。
+
+## V0.5c 船岸三维资源（2026-10-30）
+
+- 岸桥主体采用 Innerscene 的 [Container gantry crane](https://www.innerscene.com/tools/library/3d-parts/container-gantry-crane-c8a04a92)，集装箱船主体采用 [Container ship loaded](https://www.innerscene.com/tools/library/3d-parts/container-ship-loaded-5ee3b06d)。两个模型的页面均标注为 Innerscene 原创、[CC0 公共领域](https://www.innerscene.com/tools/library/terms)；完整 GLB、下载地址、字节数及 SHA-256 保存在 `web-portwise/public/assets/harbor/`。
+- 模型只负责船体、上层建筑和岸桥钢结构。船上的可变集装箱、岸桥小车、吊具与作业状态仍由本项目的仿真数据驱动，以便装卸进度和故障状态在场景中变化。
+- 这两个模型是通用港口设备与船型，并非大连港实物复刻；本项目的港区地形仍为大窑湾业务语境下的示意场景。

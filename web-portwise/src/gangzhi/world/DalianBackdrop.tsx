@@ -40,11 +40,11 @@ function terrainGeometry(){
 type Place={x:number;y:number;z:number;w:number;h:number;d:number;color:THREE.Color};
 function buildings(){
   const out:Place[]=[],palette=['#8b9d99','#839a9b','#a0a69b','#788e94','#919c91'];
-  for(let row=0;row<14;row++)for(let col=0;col<54;col++){
-    const i=row*54+col,x=-1850+col*70+(seeded(i+40)-.5)*18,z=-790-row*61+(seeded(i+240)-.5)*15;
-    if(seeded(i+100)<.28||Math.abs(x)<780&&row<3)continue;
+  for(let row=0;row<10;row++)for(let col=0;col<42;col++){
+    const i=row*42+col,x=-1800+col*86+(seeded(i+40)-.5)*18,z=-1120-row*96+(seeded(i+240)-.5)*15;
+    if(seeded(i+100)<.42||Math.abs(x)<780&&row<2)continue;
     const ground=backdropHeight(x,z);if(ground>62)continue;
-    const h=12+Math.pow(seeded(i+343),2.5)*68,w=17+seeded(i+455)*22,d=16+seeded(i+566)*23;
+    const h=10+Math.pow(seeded(i+343),2.5)*55,w=17+seeded(i+455)*22,d=16+seeded(i+566)*23;
     out.push({x,y:ground+h/2,z,w,h,d,color:new THREE.Color(palette[Math.floor(seeded(i+680)*palette.length)])});
   }
   return out;

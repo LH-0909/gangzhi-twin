@@ -1,6 +1,7 @@
 /** STS structure and hoist stages extend Portwise's beam + staged trolley pattern (MIT). */
-import { useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { containerGeometry, containerMaterial } from './Containers';
 import { Label, Model, ModelMesh, Pick } from './kit';
@@ -56,6 +57,23 @@ function stsModel() {
 const structure=stsModel();
 function alertModel(tint:string){const m=new Model();const recolor=(c:string)=>c==='#4b7895'||c==='#284b60'?tint:c;m.boxes=structure.boxes.map(p=>({...p,c:recolor(p.c)}));m.cylinders=structure.cylinders.map(p=>({...p,c:recolor(p.c)}));return m;}
 const faultStructure=alertModel('#bf514d'),weatherStructure=alertModel('#c38a3d');
+const hiddenCraneParts=new Set(['Container','Ropes','Spreader','Trolley','Trolley cab','Cab glass']);
+function CraneBody({held,fault}:{held:boolean;fault:boolean}){
+  const {scene}=useGLTF('/assets/harbor/container-gantry-crane.glb');
+  const body=useMemo(()=>{
+    const clone=scene.clone(true),tint=new THREE.Color(fault?'#c8453c':'#d2a348');
+    clone.traverse(object=>{
+      if(hiddenCraneParts.has(object.name)){object.visible=false;return;}
+      if(object instanceof THREE.Mesh){object.castShadow=true;object.receiveShadow=true;
+        if(held){const originals=Array.isArray(object.material)?object.material:[object.material];const tinted=originals.map(material=>{const copy=material.clone() as THREE.MeshStandardMaterial;if(copy.color)copy.color.lerp(tint,.74);return copy;});object.material=Array.isArray(object.material)?tinted:tinted[0];}
+      }
+    });
+    return clone;
+  },[scene,held,fault]);
+  useEffect(()=>()=>{if(held)body.traverse(object=>{if(object instanceof THREE.Mesh){const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});},[body,held]);
+  return <primitive object={body} rotation={[0,-Math.PI/2,0]} scale={1.18}/>;
+}
+useGLTF.preload('/assets/harbor/container-gantry-crane.glb');
 const trolleyModel=(()=>{const m=new Model();m.box([0,0,0],[12,1.5,5],'#3c4b52').box([-7,-2,0],[2.8,3.4,3.6],'#e1e4db').box([-7,-1.7,1.84],[2.3,1.6,.1],'#284a5d');return m;})();
 const spreaderModel=(()=>{const m=new Model();m.box([0,0,0],[12.5,.65,2.8],'#dbad54');for(const x of [-5.8,5.8])m.box([x,-.5,0],[.45,.9,2.6],'#494b42');return m;})();
 const bulkGrab=(()=>{const m=new Model();m.box([0,-1.5,0],[5,2.2,3.8],'#a4946b').box([0,-2.9,0],[4.4,.8,3.4],'#736d56');for(const x of [-2,2])m.beam([x,-.3,0],[x*.6,-2.5,0],.25,'#555c57');return m;})();
@@ -65,9 +83,9 @@ export function STSCrane({id,x,index,onSelect,selected,clock,active,held,fault,s
     if(active&&!held){if(t<12)y=THREE.MathUtils.lerp(39,20,ease(t/12));else if(t<26){y=THREE.MathUtils.lerp(20,39,ease((t-12)/14));carrying=true;}else if(t<42){z=THREE.MathUtils.lerp(35,-23,ease((t-26)/16));carrying=true;}else if(t<55){z=-23;y=THREE.MathUtils.lerp(39,6,ease((t-42)/13));carrying=true;}else if(t<64){z=-23;y=THREE.MathUtils.lerp(6,39,ease((t-55)/9));}else z=THREE.MathUtils.lerp(-23,35,ease((t-64)/8));}
     if(flow&&(flow.phase==='queued'||flow.phase==='quay_lift')){const pose=cargoMotion(flow,clock.current,syncedAt);z=flow.phase==='quay_lift'?pose.trolley:-23;y=flow.phase==='quay_lift'?pose.hoist:39;carrying=false;}
     if(trolley.current)trolley.current.position.z=z;if(spreader.current)spreader.current.position.set(0,y,z);if(carried.current)carried.current.visible=carrying&&!bulk;
-    if(cables.current){cables.current.position.set(0,(44+y)/2,z);cables.current.scale.y=Math.max(.1,44-y);}
+    if(cables.current){cables.current.position.set(0,(52+y)/2,z);cables.current.scale.y=Math.max(.1,52-y);}
   });
-  return <group position={[x,QUAY_Y,-12]}><Pick id={id} onSelect={onSelect}><ModelMesh model={fault?faultStructure:held?weatherStructure:structure}/><group ref={trolley} position={[0,44,35]}><ModelMesh model={trolleyModel}/></group><group ref={cables}>{[-4.5,4.5].map(xx=>[-.9,.9].map(zz=><mesh key={`${xx}-${zz}`} position={[xx,0,zz]}><boxGeometry args={[.055,1,.055]}/><meshStandardMaterial color="#404b50"/></mesh>))}</group><group ref={spreader}><ModelMesh model={spreaderModel}/>{bulk&&<ModelMesh model={bulkGrab}/>}<mesh ref={carried} geometry={containerGeometry} material={containerMaterial} position={[0,-1.9,0]} castShadow/></group>{held&&<mesh position={[0,95,-12]}><sphereGeometry args={[1.7,12,8]}/><meshStandardMaterial color={fault?'#ee5c4d':'#e5a445'} emissive={fault?'#df301c':'#a96b12'} emissiveIntensity={2.5}/></mesh>}{(selected||showLabel||held)&&<Label text={`${id} · ${fault?'设备故障':held?'天气停工':active?(bulk?'散货卸船':'岸桥作业'):'空闲待命'}`} p={[0,99,-10]}/>}</Pick></group>;
+  return <group position={[x,QUAY_Y,-12]}><Pick id={id} onSelect={onSelect}><Suspense fallback={<ModelMesh model={fault?faultStructure:held?weatherStructure:structure}/>}><CraneBody held={held} fault={fault}/></Suspense><group ref={trolley} position={[0,52,35]}><ModelMesh model={trolleyModel}/></group><group ref={cables}>{[-4.5,4.5].map(xx=>[-.9,.9].map(zz=><mesh key={`${xx}-${zz}`} position={[xx,0,zz]}><boxGeometry args={[.055,1,.055]}/><meshStandardMaterial color="#404b50"/></mesh>))}</group><group ref={spreader}><ModelMesh model={spreaderModel}/>{bulk&&<ModelMesh model={bulkGrab}/>}<mesh ref={carried} geometry={containerGeometry} material={containerMaterial} position={[0,-1.9,0]} castShadow/></group>{held&&<mesh position={[0,95,-12]}><sphereGeometry args={[1.7,12,8]}/><meshStandardMaterial color={fault?'#ee5c4d':'#e5a445'} emissive={fault?'#df301c':'#a96b12'} emissiveIntensity={2.5}/></mesh>}{(selected||showLabel||held)&&<Label text={`${id} · ${fault?'设备故障':held?'天气停工':active?(bulk?'散货卸船':'岸桥作业'):'空闲待命'}`} p={[0,99,-10]}/>}</Pick></group>;
 }
 function rtgModel() {const m=new Model(),c='#bda150',d='#555b58';for(const x of [-5,5])for(const z of [-15,15]){m.box([x,1,z],[4,1.5,2],d).beam([x,2,z],[x,19,z],.65,c);for(const xx of [-1,1])m.cyl([x+xx,.6,z],[1.1,.8,1.1],'#2c3232',[Math.PI/2,0,0]);}for(const x of [-5,5])m.beam([x,19,-17],[x,19,17],1,c);m.beam([-5,18,-15],[5,18,-15],.6,c).beam([-5,18,15],[5,18,15],.6,c).box([0,18,0],[6,1.2,4],d).box([6,16,0],[2,2,2],'#d8d8c6');m.beam([-4,3,-15],[-4,15,15],.2,c);return m;}
 const rtg=rtgModel();

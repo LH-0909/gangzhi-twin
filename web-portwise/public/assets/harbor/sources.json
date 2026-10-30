@@ -94,5 +94,21 @@
     "license": "CC0",
     "bytes": 362214,
     "sha256": "b9f3f76aba74007f708333c0dbe73c52eb83ea0c4187a13e2e994f888a25114a"
+  },
+  {
+    "file": "container-gantry-crane.glb",
+    "url": "https://files.innerscene.com/library/container-gantry-crane-c8a04a92/6ab476588bde75b5ceec/container-gantry-crane.glb",
+    "author": "Innerscene Corp",
+    "license": "CC0",
+    "bytes": 6777512,
+    "sha256": "ee5faa6019e098d58bd11c878aee3935bb0790e54730bb184a56a8a0577e091c"
+  },
+  {
+    "file": "container-ship-loaded.glb",
+    "url": "https://files.innerscene.com/library/container-ship-loaded-5ee3b06d/a4a2ad31200969166550/container-ship-loaded.glb",
+    "author": "Innerscene Corp",
+    "license": "CC0",
+    "bytes": 8847012,
+    "sha256": "95b5020347eadb53d4e3cbdbe845b7fdde718435964384954c516db05a532680"
   }
 ]

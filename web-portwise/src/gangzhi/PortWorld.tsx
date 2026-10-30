@@ -36,10 +36,10 @@ function Camera({props}:{props:PortWorldProps}) {
   const {camera,size}=useThree(),controls=useRef<any>(null),transition=useRef(true);
   const follow=useRef(false);
   const tourStart=useRef(0),tourShot=useRef(-1);
-  const eye=useRef(new THREE.Vector3(-40,160,300)),target=useRef(new THREE.Vector3(-275,22,-190));
+  const eye=useRef(new THREE.Vector3(-560,120,225)),target=useRef(new THREE.Vector3(-400,17,-160));
   useEffect(()=>{if(props.cruise){tourStart.current=performance.now();tourShot.current=-1;follow.current=false;transition.current=true;}},[props.cruise]);
   useEffect(()=>{
-    const views:Record<string,{p:V3;t:V3}>={immersive:{p:[-40,160,300],t:[-275,22,-190]},overview:{p:[700,420,760],t:[0,20,-300]},berth:{p:[100,92,250],t:[-260,19,-30]},yard:{p:[120,265,-40],t:[0,5,-300]},sea:{p:[-750,95,620],t:[-90,25,-120]}};
+    const views:Record<string,{p:V3;t:V3}>={immersive:{p:[-560,120,225],t:[-400,17,-160]},overview:{p:[700,420,760],t:[0,20,-300]},berth:{p:[100,92,250],t:[-260,19,-30]},yard:{p:[120,265,-40],t:[0,5,-300]},sea:{p:[-750,95,620],t:[-90,25,-120]}};
     let item=views[props.view];follow.current=!!props.selected?.startsWith('AGV-')||!!props.selected?.startsWith('V')||props.selected===props.cargoFlow?.box_id;
     const box=findYardBox(props.selected);
     if(box)item={p:[box.p[0]+23,box.p[1]+15,box.p[2]+26],t:[box.p[0],box.p[1]+.4,box.p[2]]};
@@ -81,5 +81,5 @@ function World(props:PortWorldProps) {
 }
 function EnergyLines(){return <>{Object.values(BERTH_X).map(x=><Line key={x} points={[[540,5,-620],[540,5,-575],[x,5,-575],[x,5,-12],[x,8,10]]} color="#8be1b3" lineWidth={2}/>)}<Line points={[[540,6,-620],[550,6,-480]]} color="#8be1b3" lineWidth={3}/></>;}
 export default function PortWorld(props:PortWorldProps) {
-  return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,props.quality==='standard'?1.15:1.6]} camera={{position:[-40,160,300],fov:45,near:.4,far:28000}} gl={{antialias:true,alpha:false,powerPreference:'high-performance'}} onCreated={({gl})=>{gl.toneMapping=THREE.ACESFilmicToneMapping;gl.toneMappingExposure=.9;}} fallback={<div className="scene-fallback">请开启浏览器硬件加速以查看三维港区。</div>}><Suspense fallback={null}><World {...props}/></Suspense></Canvas>;
+  return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,props.quality==='standard'?1.15:1.6]} camera={{position:[-560,120,225],fov:45,near:.4,far:28000}} gl={{antialias:true,alpha:false,powerPreference:'high-performance'}} onCreated={({gl})=>{gl.toneMapping=THREE.ACESFilmicToneMapping;gl.toneMappingExposure=.9;}} fallback={<div className="scene-fallback">请开启浏览器硬件加速以查看三维港区。</div>}><Suspense fallback={null}><World {...props}/></Suspense></Canvas>;
 }

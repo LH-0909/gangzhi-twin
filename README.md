@@ -106,7 +106,7 @@ npm run build
 
 ## 分支与回滚
 
-产品分支：`feature/gangzhi-dalian-platform`。原始 Portwise 提交保留在标签 `upstream/portwise-original`，上游地址保存在 `upstream` remote；当前代码没有向他人的 GitHub 仓库推送。
+产品分支：`feature/realistic-port-world`。原始 Portwise 提交保留在标签 `upstream/portwise-original`，上游地址保存在 `upstream` remote；本项目在独立仓库发布。
 
 查看或运行原版时，先提交或暂存自己的修改，再创建独立分支：
 
@@ -115,7 +115,7 @@ git status
 git switch -c review/original-portwise upstream/portwise-original
 
 # 返回产品开发分支
-git switch feature/gangzhi-dalian-platform
+git switch feature/realistic-port-world
 ```
 
 也可以在旁边创建独立工作目录查看原版，保留当前开发目录：
@@ -133,3 +133,5 @@ git worktree add ../portwise-original upstream/portwise-original
 完整版本记录和贡献矩阵见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。架构、数据边界和比赛演示建议见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 本地启动与生命周期核查记录见 [docs/VERIFICATION.md](docs/VERIFICATION.md)。
+
+项目计划书见 [docs/项目计划书.md](docs/项目计划书.md)。静态展示站使用 `docs/index.html`，仅展示项目介绍和截图，完整仿真需按照本地启动步骤运行。

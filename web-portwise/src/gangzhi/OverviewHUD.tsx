@@ -3,12 +3,13 @@ import { Activity, Anchor, ArrowUpRight, Bell, Box, ChevronRight, CloudFog, Pane
 import { cn, number, scenarios, type PortState } from './api';
 import { TrendChart } from './widgets';
 
-export default function OverviewHUD({ state, onSelect, onOperations, onEnvironment, onAlerts }: {
+export default function OverviewHUD({ state, onSelect, onOperations, onEnvironment, onAlerts, metricsOnly=false }: {
   state: PortState | null;
   onSelect: (id: string) => void;
   onOperations: () => void;
   onEnvironment: () => void;
   onAlerts: () => void;
+  metricsOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'berths' | 'trend' | 'events'>('berths');
@@ -28,8 +29,8 @@ export default function OverviewHUD({ state, onSelect, onOperations, onEnvironme
   ];
   return <div className={`overview-hud ${open ? '' : 'panels-hidden'}`}>
     <div className="port-metrics" aria-label="港区运行指标">{metrics.map(m => <div className="port-metric" key={m.title}><span><m.icon size={14}/>{m.title}</span><strong>{state ? m.value : '—'}<small>{m.unit}</small></strong></div>)}</div>
-    <button className="insights-toggle" aria-label={open ? '收起面板' : '打开运行面板'} aria-expanded={open} aria-controls="port-insights" onClick={() => setOpen(!open)}>{open ? <PanelRightClose size={16}/> : <PanelRightOpen size={16}/>}<span>{open ? '收起面板' : '运行面板'}</span></button>
-    {open && <aside id="port-insights" className="port-insights">
+    {!metricsOnly&&<button className="insights-toggle" aria-label={open ? '收起面板' : '打开运行面板'} aria-expanded={open} aria-controls="port-insights" onClick={() => setOpen(!open)}>{open ? <PanelRightClose size={16}/> : <PanelRightOpen size={16}/>}<span>{open ? '收起面板' : '运行面板'}</span></button>}
+    {!metricsOnly&&open && <aside id="port-insights" className="port-insights">
       <div className="insights-heading"><span className="eyebrow">PORT CONTROL</span><h2>港区运行简报 <span className="live-dot"/></h2><p>四类作业 · 一体协同</p></div>
       <div className="insight-tabs" role="tablist" aria-label="运行简报">{([['berths', '泊位作业'], ['trend', '吞吐趋势'], ['events', '事件']] as const).map(([id, title]) => <button key={id} id={`insight-tab-${id}`} role="tab" aria-selected={tab === id} aria-controls="insight-content" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{title}{id === 'events' && alerts.length > 0 && <b>{alerts.length}</b>}</button>)}</div>
       <div className="insight-content" id="insight-content" role="tabpanel" aria-labelledby={`insight-tab-${tab}`}>

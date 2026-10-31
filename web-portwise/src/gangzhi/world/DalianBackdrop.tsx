@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import { harbor } from './assets';
 
 // A deliberately schematic coastal backdrop. It evokes Dalian's bay, wooded
 // ridges and port-facing urban edge; it is not a surveyed terrain or GIS mesh.
@@ -87,7 +88,7 @@ function TreeBelt(){
 
 export default function DalianBackdrop(){
   const geometry=useMemo(terrainGeometry,[]);
-  const source=useTexture(['/assets/harbor/aerial_grass_rock_diff.jpg','/assets/harbor/aerial_grass_rock_nor_gl.jpg','/assets/harbor/aerial_grass_rock_rough.jpg']);
+  const source=useTexture([harbor('aerial_grass_rock_diff.jpg'),harbor('aerial_grass_rock_nor_gl.jpg'),harbor('aerial_grass_rock_rough.jpg')]);
   const maps=useMemo(()=>source.map((texture,i)=>{const copy=texture.clone();copy.wrapS=copy.wrapT=THREE.RepeatWrapping;copy.repeat.set(9,5);copy.anisotropy=8;if(i===0)copy.colorSpace=THREE.SRGBColorSpace;copy.needsUpdate=true;return copy;}),[source]);
   useEffect(()=>()=>{geometry.dispose();maps.forEach(map=>map.dispose());},[geometry,maps]);
   return <group><mesh geometry={geometry} receiveShadow><meshStandardMaterial map={maps[0]} normalMap={maps[1]} roughnessMap={maps[2]} normalScale={new THREE.Vector2(.2,.2)} vertexColors roughness={1} side={THREE.DoubleSide}/></mesh><City/><TreeBelt/></group>;

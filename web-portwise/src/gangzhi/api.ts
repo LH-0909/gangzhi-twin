@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { STATIC_DEMO, STATIC_DEMO_NOTICE, loadStaticState } from './staticDemo';
 export type Scenario = 'normal' | 'fog' | 'wind' | 'road_block' | 'crane_fault' | 'channel_closed';
 export type NavigationState = {phase:'inbound'|'anchored'|'approaching'|'working'|'waiting_departure'|'outbound'|'departed';started_at:number;duration:number;progress:number;length_m:number;beam_m:number;path:[number,number,number][];position:[number,number,number];heading:number;visible:boolean};
 export type Vessel = { id: string; name: string; type: string; status: string; berth_id: string | null; eta: string; progress: number; cargo_teu: number; draft: number; cargo_amount?: number; cargo_unit?: 'TEU'|'t'; cargo_tonnes?: number; arrived?: boolean; work_seconds?:number; work_rate?:number; navigation?:NavigationState };
@@ -42,8 +43,8 @@ export async function request<T>(path: string, body?: unknown): Promise<T> {
 export function usePort() {
   const [state, setState] = useState<PortState | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const rev = useRef(0);
   const refreshing=useRef(false); const mutating=useRef(false);
-  const refresh = useCallback(async () => { if(refreshing.current||mutating.current)return; refreshing.current=true; const n = ++rev.current; try { const s = await request<PortState>('/api/state'); if (n === rev.current) { setState(s); setError(''); } } catch (e) { if (n === rev.current) setError(e instanceof Error ? e.message : '连接失败'); } finally {refreshing.current=false;} }, []);
-  useEffect(() => { void refresh(); const t = window.setInterval(() => void refresh(), 1500); return () => { clearInterval(t); rev.current++; }; }, [refresh]);
-  const act = useCallback(async (path: string, body: unknown) => { if(mutating.current)throw new Error('操作正在处理，请稍候'); mutating.current=true; setBusy(true); ++rev.current; try { const s = await request<PortState>(path, body); ++rev.current; setState(s); setError(''); return s; } finally { mutating.current=false; setBusy(false); } }, []);
+  const refresh = useCallback(async () => { if(refreshing.current||mutating.current)return; refreshing.current=true; const n = ++rev.current; try { if(STATIC_DEMO){const s = await loadStaticState<PortState>(); if (n === rev.current) { setState(s); setError(''); } return;} const s = await request<PortState>('/api/state'); if (n === rev.current) { setState(s); setError(''); } } catch (e) { if (n === rev.current) setError(e instanceof Error ? e.message : '连接失败'); } finally {refreshing.current=false;} }, []);
+  useEffect(() => { void refresh(); if(STATIC_DEMO)return; const t = window.setInterval(() => void refresh(), 1500); return () => { clearInterval(t); rev.current++; }; }, [refresh]);
+  const act = useCallback(async (path: string, body: unknown) => { if(STATIC_DEMO)throw new Error(STATIC_DEMO_NOTICE); if(mutating.current)throw new Error('操作正在处理，请稍候'); mutating.current=true; setBusy(true); ++rev.current; try { const s = await request<PortState>(path, body); ++rev.current; setState(s); setError(''); return s; } finally { mutating.current=false; setBusy(false); } }, []);
   return { state, error, busy, act, refresh };
 }

@@ -5,6 +5,8 @@ import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // 部署到子路径（如 GitHub Pages 的 /gangzhi-twin/）时用 VITE_BASE 覆盖。
+  base: process.env.VITE_BASE ?? "/",
   server: {
     host: "127.0.0.1",
     port: 5180,

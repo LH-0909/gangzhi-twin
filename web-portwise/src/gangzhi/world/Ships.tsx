@@ -8,6 +8,7 @@ import type { V3 } from './layout';
 import type { NavigationState } from '../api';
 import { navigationPose } from './motion';
 import { hullGeometry } from './hull';
+import { harbor } from './assets';
 
 
 function paintedHullTexture(){
@@ -26,12 +27,12 @@ function paintedHullTexture(){
 }
 const hullMaterials=[new THREE.MeshStandardMaterial({map:paintedHullTexture(),metalness:.26,roughness:.72,side:THREE.DoubleSide}),new THREE.MeshStandardMaterial({color:'#9f4134',metalness:.25,roughness:.65,side:THREE.DoubleSide}),new THREE.MeshStandardMaterial({color:'#50615b',roughness:.85,side:THREE.DoubleSide})];
 function ContainerShipBody({length,beam,draft,boxes}:{length:number;beam:number;draft:number;boxes:Array<{p:V3;color:string}>}) {
-  const {scene}=useGLTF('/assets/harbor/container-ship-loaded.glb');
+  const {scene}=useGLTF(harbor('container-ship-loaded.glb'));
   const body=useMemo(()=>{const clone=scene.clone(true);clone.traverse(object=>{if(object.name==='Deck containers')object.visible=false;if(object instanceof THREE.Mesh){object.castShadow=true;object.receiveShadow=true;}});return clone;},[scene]);
   const cargo=useMemo(()=>boxes.map(box=>({...box,p:[box.p[0],box.p[1]+2.2,box.p[2]] as V3})),[boxes]);
   return <><group position={[-length/2,-draft,0]} scale={[length/262.2,1,beam/32.7]}><primitive object={body}/></group><BoxInstances boxes={cargo}/></>;
 }
-useGLTF.preload('/assets/harbor/container-ship-loaded.glb');
+useGLTF.preload(harbor('container-ship-loaded.glb'));
 function deckModel(length:number,beam:number,type:string) {
   const m=new Model(),sx=-length/2+24,white='#e2e5dd',glass='#1d384a',steel='#a4afb0';
   // Accommodation decks, bridge wings, windows, deck rails and funnel.

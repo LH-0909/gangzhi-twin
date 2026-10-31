@@ -8,6 +8,7 @@ import { Label, Model, ModelMesh, Pick } from './kit';
 import { QUAY_Y, YARD_BLOCKS, type V3 } from './layout';
 import type { CargoFlow, Vessel } from '../api';
 import { cargoMotion } from './motion';
+import { harbor } from './assets';
 
 function stsModel() {
   const m=new Model(),steel='#4b7895',light='#a9c6d1',dark='#284b60',rail='#e1e6de',safety='#d8a34b';
@@ -59,7 +60,7 @@ function alertModel(tint:string){const m=new Model();const recolor=(c:string)=>c
 const faultStructure=alertModel('#bf514d'),weatherStructure=alertModel('#c38a3d');
 const hiddenCraneParts=new Set(['Container','Ropes','Spreader','Trolley','Trolley cab','Cab glass']);
 function CraneBody({held,fault}:{held:boolean;fault:boolean}){
-  const {scene}=useGLTF('/assets/harbor/container-gantry-crane.glb');
+  const {scene}=useGLTF(harbor('container-gantry-crane.glb'));
   const body=useMemo(()=>{
     const clone=scene.clone(true),tint=new THREE.Color(fault?'#c8453c':'#d2a348');
     clone.traverse(object=>{
@@ -73,7 +74,7 @@ function CraneBody({held,fault}:{held:boolean;fault:boolean}){
   useEffect(()=>()=>{if(held)body.traverse(object=>{if(object instanceof THREE.Mesh){const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});},[body,held]);
   return <primitive object={body} rotation={[0,-Math.PI/2,0]} scale={1.18}/>;
 }
-useGLTF.preload('/assets/harbor/container-gantry-crane.glb');
+useGLTF.preload(harbor('container-gantry-crane.glb'));
 const trolleyModel=(()=>{const m=new Model();m.box([0,0,0],[12,1.5,5],'#3c4b52').box([-7,-2,0],[2.8,3.4,3.6],'#e1e4db').box([-7,-1.7,1.84],[2.3,1.6,.1],'#284a5d');return m;})();
 const spreaderModel=(()=>{const m=new Model();m.box([0,0,0],[12.5,.65,2.8],'#dbad54');for(const x of [-5.8,5.8])m.box([x,-.5,0],[.45,.9,2.6],'#494b42');return m;})();
 const bulkGrab=(()=>{const m=new Model();m.box([0,-1.5,0],[5,2.2,3.8],'#a4946b').box([0,-2.9,0],[4.4,.8,3.4],'#736d56');for(const x of [-2,2])m.beam([x,-.3,0],[x*.6,-2.5,0],.25,'#555c57');return m;})();

@@ -7,11 +7,12 @@ import { Label, Model, ModelMesh, Pick, Sign } from './kit';
 import type { ColdChain } from '../api';
 import { QUAY_Y, YARD_BLOCKS } from './layout';
 import DalianBackdrop from './DalianBackdrop';
+import { harbor } from './assets';
 
 const sunDirection=new THREE.Vector3(-.55,.78,.42).normalize();
 function daylight(time:number,auto:boolean,night:boolean) {return auto?THREE.MathUtils.smoothstep(Math.sin(((8+time/3600)%24-6)/12*Math.PI),-.08,.18):night?0:1;}
 function SkyDome({night,clock,autoLight}:{night:boolean;clock:React.RefObject<number>;autoLight:boolean}) {
-  const map=useEnvironment({files:'/assets/harbor/daylight.hdr'});
+  const map=useEnvironment({files:harbor('daylight.hdr')});
   const uniforms=useMemo(()=>({uMap:{value:map},uNight:{value:night?1:0}}),[map]);
   uniforms.uNight.value=night?1:0;
   useFrame(()=>{uniforms.uNight.value=1-daylight(clock.current,autoLight,night);});
@@ -24,10 +25,10 @@ export function HarbourAtmosphere({night,scenario,clock,autoLight}:{night:boolea
   const sun=useRef<THREE.DirectionalLight>(null),sky=useRef<THREE.HemisphereLight>(null);
   const dayColor=useMemo(()=>new THREE.Color('#fff3db'),[]),nightColor=useMemo(()=>new THREE.Color('#b5c9ed'),[]),fogDay=useMemo(()=>new THREE.Color(scenario==='fog'?'#adc0c7':'#b8cfe0'),[scenario]);
   useFrame(({scene})=>{const d=daylight(clock.current,autoLight,night),angle=((8+clock.current/3600)%24-6)/12*Math.PI;if(sun.current){if(autoLight)sun.current.position.set(-Math.cos(angle)*1400,Math.max(180,Math.sin(angle)*1400),600);sun.current.intensity=THREE.MathUtils.lerp(.35,3.4,d);sun.current.color.copy(nightColor).lerp(dayColor,d);}if(sky.current)sky.current.intensity=THREE.MathUtils.lerp(.12,.55,d);scene.environmentIntensity=THREE.MathUtils.lerp(.16,.46,d);if(scene.fog instanceof THREE.Fog)scene.fog.color.set('#0c2438').lerp(fogDay,d);});
-  return <><SkyDome clock={clock} autoLight={autoLight} night={night}/><Environment files="/assets/harbor/daylight.hdr" background={false} environmentIntensity={.46} environmentRotation={[0,1.1,0]} backgroundRotation={[0,1.1,0]}/><fog attach="fog" args={['#b8cfe0',scenario==='fog'?110:1400,scenario==='fog'?1600:7500]}/><ambientLight intensity={.12}/><hemisphereLight ref={sky} args={['#c9dff0','#647572',.55]}/><directionalLight ref={sun} position={[-750,1200,600]} intensity={3.4} color="#fff3db" castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-1000} shadow-camera-right={1000} shadow-camera-top={850} shadow-camera-bottom={-850} shadow-camera-far={2900} shadow-bias={-.00015} shadow-normalBias={.16}/></>;
+  return <><SkyDome clock={clock} autoLight={autoLight} night={night}/><Environment files={harbor('daylight.hdr')} background={false} environmentIntensity={.46} environmentRotation={[0,1.1,0]} backgroundRotation={[0,1.1,0]}/><fog attach="fog" args={['#b8cfe0',scenario==='fog'?110:1400,scenario==='fog'?1600:7500]}/><ambientLight intensity={.12}/><hemisphereLight ref={sky} args={['#c9dff0','#647572',.55]}/><directionalLight ref={sun} position={[-750,1200,600]} intensity={3.4} color="#fff3db" castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-1000} shadow-camera-right={1000} shadow-camera-top={850} shadow-camera-bottom={-850} shadow-camera-far={2900} shadow-bias={-.00015} shadow-normalBias={.16}/></>;
 }
 export function Ocean({clock,night,storm,quality,autoLight}:{clock:React.RefObject<number>;night:boolean;storm:boolean;quality:'standard'|'high';autoLight:boolean}) {
-  const normals=useTexture('/assets/harbor/waternormals.jpg');
+  const normals=useTexture(harbor('waternormals.jpg'));
   const dayWater=useMemo(()=>new THREE.Color('#0b526e'),[]),daySun=useMemo(()=>new THREE.Color('#fff0dc'),[]);
   const water=useMemo(()=>{normals.wrapS=normals.wrapT=THREE.RepeatWrapping;const w=new Water(new THREE.PlaneGeometry(30000,30000),{textureWidth:quality==='high'?512:256,textureHeight:quality==='high'?512:256,waterNormals:normals,sunDirection,sunColor:'#fff0dc',waterColor:'#10566c',distortionScale:2.5,fog:true});w.rotation.x=-Math.PI/2;w.position.y=-.12;w.material.uniforms.size.value=9;w.material.fragmentShader=w.material.fragmentShader.replace('noise.xzy * vec3( 1.5, 1.0, 1.5 )','noise.xzy * vec3( 0.6, 1.0, 0.6 )').replace('vec3 outgoingLight = albedo;','vec3 outgoingLight = mix(albedo * vec3(0.32, 0.54, 0.72), waterColor * 1.4, 0.48);');return w;},[normals,quality]);
   useFrame(()=>{const d=daylight(clock.current,autoLight,night),angle=((8+clock.current/3600)%24-6)/12*Math.PI;water.material.uniforms.time.value=clock.current*.4;water.material.uniforms.distortionScale.value=storm?3.5:1.6;water.material.uniforms.waterColor.value.set('#041a31').lerp(dayWater,d);water.material.uniforms.sunColor.value.set('#617d9e').lerp(daySun,d);if(autoLight)water.material.uniforms.sunDirection.value.set(-Math.cos(angle),Math.max(.15,Math.sin(angle)),.42).normalize();});
@@ -35,7 +36,7 @@ export function Ocean({clock,night,storm,quality,autoLight}:{clock:React.RefObje
   return <primitive object={water}/>;
 }
 function usePavement(name:string,w:number,d:number,tile:number) {
-  const maps=useTexture([`/assets/harbor/${name}_diff.jpg`,`/assets/harbor/${name}_nor_gl.jpg`,`/assets/harbor/${name}_rough.jpg`]);
+  const maps=useTexture([harbor(`${name}_diff.jpg`),harbor(`${name}_nor_gl.jpg`),harbor(`${name}_rough.jpg`)]);
   return useMemo(()=>{const textures=maps.map((t,i)=>{const c=t.clone();c.wrapS=c.wrapT=THREE.RepeatWrapping;c.repeat.set(w/tile,d/tile);c.anisotropy=8;if(i===0)c.colorSpace=THREE.SRGBColorSpace;return c;});const material=new THREE.MeshStandardMaterial({map:textures[0],normalMap:textures[1],roughnessMap:textures[2],roughness:1,normalScale:new THREE.Vector2(.3,.3),color:name==='concrete_floor'?'#d8dedf':'#adb5b8'});if(name==='concrete_floor')material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\nfloat luma=dot(diffuseColor.rgb,vec3(.299,.587,.114));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(luma)*vec3(.98,1.,1.04),.95);');};return material;},[maps[0],maps[1],maps[2],w,d,tile,name]);
 }
 function Surface({x,z,w,d,asphalt=false,y=QUAY_Y+.04}:{x:number;z:number;w:number;d:number;asphalt?:boolean;y?:number}) {const material=usePavement(asphalt?'asphalt_02':'concrete_floor',w,d,asphalt?18:22);return <mesh position={[x,y,z]} rotation={[-Math.PI/2,0,0]} material={material} receiveShadow><planeGeometry args={[w,d]}/></mesh>;}

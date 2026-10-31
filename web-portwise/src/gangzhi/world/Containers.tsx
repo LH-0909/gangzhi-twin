@@ -4,6 +4,7 @@ import { Edges, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { BOX_COLORS, BOX_SIZE, findYardBox, YARD_BOXES, type V3, type YardBox } from './layout';
 import { Model, ModelMesh, Sign } from './kit';
+import { harbor } from './assets';
 
 // Corrugations are geometry, so grazing light and silhouettes have actual depth.
 export const containerGeometry=(()=>{
@@ -21,7 +22,7 @@ export const containerGeometry=(()=>{
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.computeVertexNormals();return g;
 })();
 export const containerMaterial=new THREE.MeshStandardMaterial({color:'#fff',roughness:.78,metalness:.22});
-export function ContainerSurface(){const maps=useTexture(['/assets/harbor/concrete_floor_rough.jpg','/assets/harbor/concrete_floor_nor_gl.jpg']);useEffect(()=>{containerMaterial.roughnessMap=maps[0];containerMaterial.normalMap=maps[1];containerMaterial.normalScale.set(.075,.075);containerMaterial.roughness=.98;containerMaterial.needsUpdate=true;},[maps[0],maps[1]]);return null;}
+export function ContainerSurface(){const maps=useTexture([harbor('concrete_floor_rough.jpg'),harbor('concrete_floor_nor_gl.jpg')]);useEffect(()=>{containerMaterial.roughnessMap=maps[0];containerMaterial.normalMap=maps[1];containerMaterial.normalScale.set(.075,.075);containerMaterial.roughness=.98;containerMaterial.needsUpdate=true;},[maps[0],maps[1]]);return null;}
 const brandMaterial=(()=>{const cv=document.createElement('canvas');cv.width=1024;cv.height=160;const c=cv.getContext('2d')!;c.clearRect(0,0,1024,160);c.fillStyle='#e9e7d9';c.font='bold 65px Arial,sans-serif';c.textAlign='center';c.fillText('LIAOHAI',512,78);c.font='22px Arial,sans-serif';c.fillText('INTERMODAL  /  40 HIGH CUBE',512,124);const map=new THREE.CanvasTexture(cv);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=4;return new THREE.MeshStandardMaterial({map,transparent:true,alphaTest:.25,side:THREE.DoubleSide,roughness:.85});})();
 const labelGeometry=new THREE.PlaneGeometry(7.4,1.15);
 const simpleContainerGeometry=new THREE.BoxGeometry(...BOX_SIZE);
